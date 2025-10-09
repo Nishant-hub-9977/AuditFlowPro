@@ -10,6 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 
 //todo: remove mock functionality
 const users = [
@@ -57,7 +58,33 @@ export default function MasterData() {
               Add User
             </Button>
           </div>
-          <div className="overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+
+          {/* Mobile Card View */}
+          <div className="md:hidden space-y-3">
+            {users.map((user) => (
+              <Card key={user.id} data-testid={`card-user-${user.id}`} className="hover-elevate">
+                <CardContent className="p-4 space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-lg font-semibold" data-testid={`text-name-${user.id}`}>{user.name}</p>
+                      <p className="text-sm text-muted-foreground mt-0.5" data-testid={`text-email-${user.id}`}>{user.email}</p>
+                    </div>
+                    <Badge variant="default" data-testid={`badge-status-${user.id}`}>{user.status}</Badge>
+                  </div>
+                  
+                  <div className="flex items-center justify-between pt-2 border-t">
+                    <Badge variant="outline" data-testid={`badge-role-${user.id}`}>{user.role}</Badge>
+                    <Button variant="ghost" size="sm" data-testid={`button-edit-user-${user.id}`}>
+                      Edit
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden md:block overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
             <div className="rounded-lg border min-w-[700px]">
               <Table>
                 <TableHeader>
@@ -100,7 +127,36 @@ export default function MasterData() {
               Add Customer
             </Button>
           </div>
-          <div className="overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+
+          {/* Mobile Card View */}
+          <div className="md:hidden space-y-3">
+            {customers.map((customer) => (
+              <Card key={customer.id} data-testid={`card-customer-${customer.id}`} className="hover-elevate">
+                <CardContent className="p-4 space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-lg font-semibold" data-testid={`text-name-${customer.id}`}>{customer.name}</p>
+                      <p className="text-sm text-muted-foreground mt-0.5" data-testid={`text-industry-${customer.id}`}>{customer.industry}</p>
+                    </div>
+                    <Badge variant="default" data-testid={`badge-status-${customer.id}`}>{customer.status}</Badge>
+                  </div>
+                  
+                  <div className="flex items-center justify-between pt-2 border-t">
+                    <div>
+                      <p className="text-muted-foreground text-sm">Total Audits</p>
+                      <p className="font-semibold" data-testid={`text-audits-${customer.id}`}>{customer.audits}</p>
+                    </div>
+                    <Button variant="ghost" size="sm" data-testid={`button-edit-customer-${customer.id}`}>
+                      Edit
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden md:block overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
             <div className="rounded-lg border min-w-[700px]">
               <Table>
                 <TableHeader>
@@ -141,7 +197,35 @@ export default function MasterData() {
               Add Industry Type
             </Button>
           </div>
-          <div className="overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+
+          {/* Mobile Card View */}
+          <div className="md:hidden space-y-3">
+            {industryTypes.map((industry) => (
+              <Card key={industry.id} data-testid={`card-industry-${industry.id}`} className="hover-elevate">
+                <CardContent className="p-4 space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-lg font-semibold" data-testid={`text-name-${industry.id}`}>{industry.name}</p>
+                      <p className="text-sm text-muted-foreground font-mono mt-0.5" data-testid={`text-code-${industry.id}`}>{industry.code}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between pt-2 border-t">
+                    <div>
+                      <p className="text-muted-foreground text-sm">Total Audits</p>
+                      <p className="font-semibold" data-testid={`text-audits-${industry.id}`}>{industry.audits}</p>
+                    </div>
+                    <Button variant="ghost" size="sm" data-testid={`button-edit-industry-${industry.id}`}>
+                      Edit
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden md:block overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
             <div className="rounded-lg border min-w-[600px]">
               <Table>
                 <TableHeader>

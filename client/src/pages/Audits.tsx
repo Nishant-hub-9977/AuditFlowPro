@@ -19,6 +19,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 
 //todo: remove mock functionality
 const mockAudits = [
@@ -87,8 +88,50 @@ export default function Audits() {
         </Button>
       </div>
 
-      {/* Audits Table */}
-      <div className="overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+      {/* Mobile Card View */}
+      <div className="md:hidden space-y-3">
+        {mockAudits.map((audit) => (
+          <Card key={audit.id} data-testid={`card-audit-${audit.id}`} className="hover-elevate">
+            <CardContent className="p-4 space-y-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="font-mono text-sm font-medium" data-testid={`text-audit-id-${audit.id}`}>{audit.id}</p>
+                  <p className="text-lg font-semibold mt-1" data-testid={`text-customer-${audit.id}`}>{audit.customer}</p>
+                </div>
+                <Badge variant="outline" data-testid={`badge-status-${audit.id}`}>{audit.status}</Badge>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <p className="text-muted-foreground">Industry</p>
+                  <p className="font-medium mt-0.5" data-testid={`text-industry-${audit.id}`}>{audit.industry}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Type</p>
+                  <p className="font-medium mt-0.5" data-testid={`text-type-${audit.id}`}>{audit.type}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Date</p>
+                  <p className="font-medium mt-0.5" data-testid={`text-date-${audit.id}`}>{audit.date}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Auditor</p>
+                  <p className="font-medium mt-0.5" data-testid={`text-auditor-${audit.id}`}>{audit.auditor}</p>
+                </div>
+              </div>
+              
+              <div className="flex justify-end pt-2 border-t">
+                <Button variant="ghost" size="sm" data-testid={`button-view-${audit.id}`}>
+                  View
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Desktop Table View */}
+      <div className="hidden md:block overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
         <div className="rounded-lg border min-w-[800px]">
           <Table>
             <TableHeader>
