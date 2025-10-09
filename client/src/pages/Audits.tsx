@@ -88,41 +88,43 @@ export default function Audits() {
       </div>
 
       {/* Audits Table */}
-      <div className="rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Audit ID</TableHead>
-              <TableHead>Customer</TableHead>
-              <TableHead>Industry</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead>Auditor</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {mockAudits.map((audit) => (
-              <TableRow key={audit.id} data-testid={`row-audit-${audit.id}`}>
-                <TableCell className="font-mono text-sm">{audit.id}</TableCell>
-                <TableCell>{audit.customer}</TableCell>
-                <TableCell>{audit.industry}</TableCell>
-                <TableCell>{audit.type}</TableCell>
-                <TableCell>
-                  <Badge variant="outline">{audit.status}</Badge>
-                </TableCell>
-                <TableCell className="text-muted-foreground">{audit.date}</TableCell>
-                <TableCell>{audit.auditor}</TableCell>
-                <TableCell className="text-right">
-                  <Button variant="ghost" size="sm" data-testid={`button-view-${audit.id}`}>
-                    View
-                  </Button>
-                </TableCell>
+      <div className="overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+        <div className="rounded-lg border min-w-[800px]">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Audit ID</TableHead>
+                <TableHead>Customer</TableHead>
+                <TableHead>Industry</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead>Auditor</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {mockAudits.map((audit) => (
+                <TableRow key={audit.id} data-testid={`row-audit-${audit.id}`}>
+                  <TableCell className="font-mono text-sm">{audit.id}</TableCell>
+                  <TableCell>{audit.customer}</TableCell>
+                  <TableCell>{audit.industry}</TableCell>
+                  <TableCell>{audit.type}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline">{audit.status}</Badge>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">{audit.date}</TableCell>
+                  <TableCell>{audit.auditor}</TableCell>
+                  <TableCell className="text-right">
+                    <Button variant="ghost" size="sm" data-testid={`button-view-${audit.id}`}>
+                      View
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       </div>
 
       {/* Create Audit Dialog */}

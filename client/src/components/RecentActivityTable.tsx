@@ -59,47 +59,51 @@ export function RecentActivityTable() {
         </Button>
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>ID</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Customer</TableHead>
-              <TableHead>Industry</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead>Auditor</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {mockActivities.map((activity) => (
-              <TableRow key={activity.id} data-testid={`row-activity-${activity.id}`}>
-                <TableCell className="font-mono text-sm">{activity.id}</TableCell>
-                <TableCell>{activity.type}</TableCell>
-                <TableCell>{activity.customer}</TableCell>
-                <TableCell>{activity.industry}</TableCell>
-                <TableCell>
-                  <Badge variant={statusColors[activity.status] || "outline"}>
-                    {activity.status}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-muted-foreground">{activity.date}</TableCell>
-                <TableCell>{activity.auditor}</TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end gap-2">
-                    <Button variant="ghost" size="icon" data-testid={`button-view-${activity.id}`}>
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" data-testid={`button-edit-${activity.id}`}>
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <div className="overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+          <div className="min-w-[800px]">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>ID</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Customer</TableHead>
+                  <TableHead>Industry</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Auditor</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {mockActivities.map((activity) => (
+                  <TableRow key={activity.id} data-testid={`row-activity-${activity.id}`}>
+                    <TableCell className="font-mono text-sm">{activity.id}</TableCell>
+                    <TableCell>{activity.type}</TableCell>
+                    <TableCell>{activity.customer}</TableCell>
+                    <TableCell>{activity.industry}</TableCell>
+                    <TableCell>
+                      <Badge variant={statusColors[activity.status] || "outline"}>
+                        {activity.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">{activity.date}</TableCell>
+                    <TableCell>{activity.auditor}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button variant="ghost" size="icon" data-testid={`button-view-${activity.id}`}>
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" data-testid={`button-edit-${activity.id}`}>
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );

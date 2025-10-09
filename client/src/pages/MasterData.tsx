@@ -57,37 +57,39 @@ export default function MasterData() {
               Add User
             </Button>
           </div>
-          <div className="rounded-lg border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {users.map((user) => (
-                  <TableRow key={user.id} data-testid={`row-user-${user.id}`}>
-                    <TableCell>{user.name}</TableCell>
-                    <TableCell className="text-muted-foreground">{user.email}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{user.role}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="default">{user.status}</Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" data-testid={`button-edit-user-${user.id}`}>
-                        Edit
-                      </Button>
-                    </TableCell>
+          <div className="overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+            <div className="rounded-lg border min-w-[700px]">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {users.map((user) => (
+                    <TableRow key={user.id} data-testid={`row-user-${user.id}`}>
+                      <TableCell>{user.name}</TableCell>
+                      <TableCell className="text-muted-foreground">{user.email}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{user.role}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="default">{user.status}</Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="sm" data-testid={`button-edit-user-${user.id}`}>
+                          Edit
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </div>
         </TabsContent>
 
@@ -98,35 +100,37 @@ export default function MasterData() {
               Add Customer
             </Button>
           </div>
-          <div className="rounded-lg border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Company Name</TableHead>
-                  <TableHead>Industry</TableHead>
-                  <TableHead>Total Audits</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {customers.map((customer) => (
-                  <TableRow key={customer.id} data-testid={`row-customer-${customer.id}`}>
-                    <TableCell>{customer.name}</TableCell>
-                    <TableCell>{customer.industry}</TableCell>
-                    <TableCell>{customer.audits}</TableCell>
-                    <TableCell>
-                      <Badge variant="default">{customer.status}</Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" data-testid={`button-edit-customer-${customer.id}`}>
-                        Edit
-                      </Button>
-                    </TableCell>
+          <div className="overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+            <div className="rounded-lg border min-w-[700px]">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Company Name</TableHead>
+                    <TableHead>Industry</TableHead>
+                    <TableHead>Total Audits</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {customers.map((customer) => (
+                    <TableRow key={customer.id} data-testid={`row-customer-${customer.id}`}>
+                      <TableCell>{customer.name}</TableCell>
+                      <TableCell>{customer.industry}</TableCell>
+                      <TableCell>{customer.audits}</TableCell>
+                      <TableCell>
+                        <Badge variant="default">{customer.status}</Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="sm" data-testid={`button-edit-customer-${customer.id}`}>
+                          Edit
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </div>
         </TabsContent>
 
@@ -137,31 +141,33 @@ export default function MasterData() {
               Add Industry Type
             </Button>
           </div>
-          <div className="rounded-lg border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Industry Name</TableHead>
-                  <TableHead>Code</TableHead>
-                  <TableHead>Total Audits</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {industryTypes.map((industry) => (
-                  <TableRow key={industry.id} data-testid={`row-industry-${industry.id}`}>
-                    <TableCell>{industry.name}</TableCell>
-                    <TableCell className="font-mono">{industry.code}</TableCell>
-                    <TableCell>{industry.audits}</TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" data-testid={`button-edit-industry-${industry.id}`}>
-                        Edit
-                      </Button>
-                    </TableCell>
+          <div className="overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+            <div className="rounded-lg border min-w-[600px]">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Industry Name</TableHead>
+                    <TableHead>Code</TableHead>
+                    <TableHead>Total Audits</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {industryTypes.map((industry) => (
+                    <TableRow key={industry.id} data-testid={`row-industry-${industry.id}`}>
+                      <TableCell>{industry.name}</TableCell>
+                      <TableCell className="font-mono">{industry.code}</TableCell>
+                      <TableCell>{industry.audits}</TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="sm" data-testid={`button-edit-industry-${industry.id}`}>
+                          Edit
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </div>
         </TabsContent>
 

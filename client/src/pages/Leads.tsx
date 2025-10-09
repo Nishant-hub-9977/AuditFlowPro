@@ -72,43 +72,45 @@ export default function Leads() {
       {view === "kanban" ? (
         <LeadKanban />
       ) : (
-        <div className="rounded-lg border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Lead ID</TableHead>
-                <TableHead>Company</TableHead>
-                <TableHead>Contact</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Priority</TableHead>
-                <TableHead>Value</TableHead>
-                <TableHead>Source</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {mockLeads.map((lead) => (
-                <TableRow key={lead.id} data-testid={`row-lead-${lead.id}`}>
-                  <TableCell className="font-mono text-sm">{lead.id}</TableCell>
-                  <TableCell>{lead.company}</TableCell>
-                  <TableCell>{lead.contact}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{lead.status}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="secondary">{lead.priority}</Badge>
-                  </TableCell>
-                  <TableCell className="font-semibold">{lead.value}</TableCell>
-                  <TableCell>{lead.source}</TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="sm" data-testid={`button-view-${lead.id}`}>
-                      View
-                    </Button>
-                  </TableCell>
+        <div className="overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+          <div className="rounded-lg border min-w-[800px]">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Lead ID</TableHead>
+                  <TableHead>Company</TableHead>
+                  <TableHead>Contact</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Priority</TableHead>
+                  <TableHead>Value</TableHead>
+                  <TableHead>Source</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {mockLeads.map((lead) => (
+                  <TableRow key={lead.id} data-testid={`row-lead-${lead.id}`}>
+                    <TableCell className="font-mono text-sm">{lead.id}</TableCell>
+                    <TableCell>{lead.company}</TableCell>
+                    <TableCell>{lead.contact}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{lead.status}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary">{lead.priority}</Badge>
+                    </TableCell>
+                    <TableCell className="font-semibold">{lead.value}</TableCell>
+                    <TableCell>{lead.source}</TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="sm" data-testid={`button-view-${lead.id}`}>
+                        View
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       )}
     </div>
