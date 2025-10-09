@@ -1,0 +1,76 @@
+Project Overview
+Build a comprehensive web and mobile platform for audit and lead management. It supports auditors in planning, executing, and reporting audits across industries (e.g., Pharma, Chemical). Key features include audit form filling, checklists, observations, lead management with CRM integration, dashboards, notifications, master data configs, and channel partner access. The system links audits to leads, tracks progress, and generates reports.
+High-Level Requirements
+
+Audit Management:
+
+Audit Form: Fields for Audit Date, Auditor Name, Customer Name, Site Location, Industry Type (dropdown: Pharma, Chemical, etc.), Audit Type (dropdown: Fire, Electrical, etc.), Geo-Location (auto-fetch), Audit Stage (Planning, Execution, etc.), Work Status (Pending, In Progress, Completed), Audit Status (Draft, Submitted, etc.).
+Audit Checklist (Annexure C): Dynamic questions with answers, current status/observations, recommendations.
+Audit Observations: Major non-compliances, safety hazards (Yes/No + desc), employee awareness (Low/Medium/High), suggestions.
+Business Intelligence: Client openness to support (Yes/No), potential needs (checkboxes), compliance status, future plans, lead recommendations for entities.
+Follow-up: Client interest, contact details, auditor comments, photo/document uploads.
+
+
+Lead Management:
+
+Lead Entry/Assignment: Create leads, assign (admin), segregate by type/priority/status (Open, Converted, Rejected).
+Follow-up: History, status updates, track engagement, feedback to dashboard, refine lead quality.
+Integration: Link won leads to audit initiation, upload quotations/invoices, track IDs/numbers.
+
+
+Master Data & Configurations:
+
+Manage: Users/Auditors, Roles/Permissions, Channel Partners, Cities/States, Departments, Customers (with audit history), Contacts, Industry Types, Audit Types, Questionnaire Templates (dynamic, importable), Lead Types/Stages.
+
+
+Alerts & Notifications: Configurable emails/notifications for users, customers, teams.
+Approval Workflows: Create/use templates for stakeholder approvals in audits.
+Reports & Dashboards: Real-time insights on audits, compliance, leads; 7-8 reports (incl. Audit Report); Separate dashboard for channel partners.
+Mobile App: Registration/Login, Home Page, Audit Form Filling, Observations, Lead Creation (for enterprise users and partners).
+General:
+
+Users: SP121 Enterprise Users and Channel Partners can access web/mobile.
+Integration: With CRM for leads.
+Manual Audit Initiation: Link to lead management.
+
+
+
+Technology Stack
+
+Web Frontend: HTML5, CSS3/Sass, JavaScript/TypeScript with Angular (preferred) or Blazor, Bootstrap for responsive UI.
+Backend: .NET Core / ASP.NET with C#.
+Database: PostgreSQL (or MS-SQL if easier; use Replit's database connections or SQLite for prototyping).
+Mobile: Flutter for Android/iOS (cross-platform; use Replit's shell for Flutter setup and emulation).
+Other: Secure login, English language, photo uploads, geo-location API, automated emails (e.g., via SMTP), real-time dashboards (e.g., using charts.js).
+
+Instructions for Building
+
+Setup Project Structure:
+
+Create a new Replit project: AuditLifecycleManagement.
+Use Replit's file system: Folders for Web (frontend/backend), Mobile (Flutter app), Docs (for schemas/comments).
+Initialize Git repo via Replit's version control.
+Install dependencies: Use Replit's package manager for npm (frontend), NuGet (backend); For mobile, install Flutter via shell.
+Configure DB: Set up PostgreSQL connection (use external DB URL or Replit's built-in options).
+
+
+Implement Step-by-Step:
+
+Start with backend: Create API endpoints for authentication, master data CRUD, audit/lead models (use Entity Framework for ORM).
+Models: Define classes for Audit, Lead, User, etc., matching fields above.
+Frontend: Build responsive forms (e.g., Angular components for audit form, checklist with dynamic questions).
+Mobile: Scaffold Flutter app with screens for login, audit form (incl. geo-location via plugins), lead creation.
+Integrations: Stub CRM hooks (e.g., API calls), implement file uploads, notifications.
+Security: JWT auth, role-based access.
+Dashboards: Use Angular/Blazor for visuals, fetch data via APIs.
+Testing: Run unit tests in Replit's console, simulate data, preview web app.
+
+
+Output Format:
+
+For each step, generate code snippets/files, explain changes, and suggest next actions.
+If needed, query me for clarifications, but aim for autonomy.
+
+
+
+Begin now: Set up the initial project structure and generate the backend models for Audit and Lead.
