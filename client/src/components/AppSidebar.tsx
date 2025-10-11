@@ -6,6 +6,7 @@ import {
   Settings,
   BarChart3,
   Building2,
+  LogOut,
 } from "lucide-react";
 import {
   Sidebar,
@@ -17,8 +18,11 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarHeader,
+  SidebarFooter,
 } from "@/components/ui/sidebar";
 import { Link, useLocation } from "wouter";
+import { useAuth } from "@/lib/authContext";
+import { Button } from "@/components/ui/button";
 
 const enterpriseItems = [
   {
@@ -72,8 +76,20 @@ const partnerItems = [
 ];
 
 export function AppSidebar({ userRole = "enterprise" }: { userRole?: "enterprise" | "partner" }) {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
+  const { logout, user } = useAuth();
   const items = userRole === "partner" ? partnerItems : enterpriseItems;
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      setLocation("/login");
+    } catch (error) {
+      console.error("Logout failed:", error);
+      // Still redirect to login even if API call fails
+      setLocation("/login");
+    }
+  };
 
   return (
     <Sidebar>
@@ -83,7 +99,7 @@ export function AppSidebar({ userRole = "enterprise" }: { userRole?: "enterprise
             <Building2 className="h-5 w-5 text-primary-foreground" />
           </div>
           <div>
-            <p className="text-sm font-semibold">SP121</p>
+            <p className="text-sm font-semibold">Audit Flow Pro</p>
             <p className="text-xs text-muted-foreground">Audit Platform</p>
           </div>
         </div>
@@ -111,6 +127,25 @@ export function AppSidebar({ userRole = "enterprise" }: { userRole?: "enterprise
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+      <SidebarFooter className="p-4 border-t border-sidebar-border">
+        <div className="space-y-2">
+          {user && (
+            <div className="px-2 py-1">
+              <p className="text-sm font-medium">{user.fullName}</p>
+              <p className="text-xs text-muted-foreground">{user.email}</p>
+            </div>
+          )}
+          <Button 
+            variant="outline" 
+            className="w-full justify-start" 
+            onClick={handleLogout}
+            data-testid="button-logout"
+          >
+            <LogOut className="h-4 w-4 mr-2" />
+            Logout
+          </Button>
+        </div>
+      </SidebarFooter>
     </Sidebar>
   );
 }

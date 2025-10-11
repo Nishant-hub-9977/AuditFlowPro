@@ -2,14 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus, Search, Filter, CheckCircle, XCircle, Archive, Send } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { AuditFormWizard } from "@/components/AuditFormWizard";
+import { CreateAuditDialog } from "@/components/CreateAuditDialog";
 import {
   Table,
   TableBody,
@@ -335,21 +328,7 @@ export default function Audits() {
       )}
 
       {/* Create Audit Dialog */}
-      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0">
-          <div className="p-6 pb-0">
-            <DialogHeader>
-              <DialogTitle>Create New Audit</DialogTitle>
-              <DialogDescription>
-                Fill in the audit details through the multi-step wizard
-              </DialogDescription>
-            </DialogHeader>
-          </div>
-          <div className="px-6 pb-6">
-            <AuditFormWizard />
-          </div>
-        </DialogContent>
-      </Dialog>
+      <CreateAuditDialog open={isCreateOpen} onOpenChange={setIsCreateOpen} />
     </div>
   );
 }
