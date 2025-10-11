@@ -41,6 +41,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Reports
+  app.get("/api/reports/audits", async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      const reports = await storage.getAuditReports(req.user.tenantId);
+      res.json(reports);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch audit reports" });
+    }
+  });
+
+  app.get("/api/reports/leads", async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      const reports = await storage.getLeadReports(req.user.tenantId);
+      res.json(reports);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch lead reports" });
+    }
+  });
+
   // Users (Admin only for list, authenticated for own profile)
   app.get("/api/users", authenticateToken, authorizeRoles("admin"), async (req: AuthRequest, res) => {
     try {

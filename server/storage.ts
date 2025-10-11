@@ -126,6 +126,23 @@ export interface IStorage {
     completedAudits: number;
     totalLeads: number;
   }>;
+
+  // Reports
+  getAuditReports(tenantId: string): Promise<{
+    auditsByStatus: { status: string; count: number }[];
+    auditsByIndustry: { industryName: string; count: number }[];
+    auditsByType: { auditTypeName: string; count: number }[];
+    totalAudits: number;
+  }>;
+
+  getLeadReports(tenantId: string): Promise<{
+    leadsByStatus: { status: string; count: number }[];
+    leadsByIndustry: { industryName: string; count: number }[];
+    leadsByPriority: { priority: string; count: number }[];
+    conversionRate: number;
+    totalEstimatedValue: number;
+    totalLeads: number;
+  }>;
 }
 
 export class DbStorage implements IStorage {
@@ -650,6 +667,151 @@ export class DbStorage implements IStorage {
       pendingAudits: Number(pendingAuditsResult.count),
       completedAudits: Number(completedAuditsResult.count),
       totalLeads: Number(totalLeadsResult.count),
+    };
+  }
+
+  // Reports
+  async getAuditReports(tenantId: string): Promise<{
+    auditsByStatus: { status: string; count: number }[];
+    auditsByIndustry: { industryName: string; count: number }[];
+    auditsByType: { auditTypeName: string; count: number }[];
+    totalAudits: number;
+  }> {
+    // Audits by status
+    const auditsByStatus = await db
+      .select({
+        status: schema.audits.status,
+        count: sql<number>`count(*)`,
+      })
+      .from(schema.audits)
+      .where(eq(schema.audits.tenantId, tenantId))
+      .groupBy(schema.audits.status);
+
+    // Audits by industry
+    const auditsByIndustry = await db
+      .select({
+        industryName: schema.industries.name,
+        count: sql<number>`count(*)`,
+      })
+      .from(schema.audits)
+      .leftJoin(schema.industries, eq(schema.audits.industryId, schema.industries.id))
+      .where(eq(schema.audits.tenantId, tenantId))
+      .groupBy(schema.industries.name);
+
+    // Audits by audit type
+    const auditsByType = await db
+      .select({
+        auditTypeName: schema.auditTypes.name,
+        count: sql<number>`count(*)`,
+      })
+      .from(schema.audits)
+      .leftJoin(schema.auditTypes, eq(schema.audits.auditTypeId, schema.auditTypes.id))
+      .where(eq(schema.audits.tenantId, tenantId))
+      .groupBy(schema.auditTypes.name);
+
+    // Total audits
+    const [totalResult] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(schema.audits)
+      .where(eq(schema.audits.tenantId, tenantId));
+
+    return {
+      auditsByStatus: auditsByStatus.map(row => ({
+        status: row.status || 'unknown',
+        count: Number(row.count),
+      })),
+      auditsByIndustry: auditsByIndustry.map(row => ({
+        industryName: row.industryName || 'Unknown',
+        count: Number(row.count),
+      })),
+      auditsByType: auditsByType.map(row => ({
+        auditTypeName: row.auditTypeName || 'Unknown',
+        count: Number(row.count),
+      })),
+      totalAudits: Number(totalResult.count),
+    };
+  }
+
+  async getLeadReports(tenantId: string): Promise<{
+    leadsByStatus: { status: string; count: number }[];
+    leadsByIndustry: { industryName: string; count: number }[];
+    leadsByPriority: { priority: string; count: number }[];
+    conversionRate: number;
+    totalEstimatedValue: number;
+    totalLeads: number;
+  }> {
+    // Leads by status
+    const leadsByStatus = await db
+      .select({
+        status: schema.leads.status,
+        count: sql<number>`count(*)`,
+      })
+      .from(schema.leads)
+      .where(eq(schema.leads.tenantId, tenantId))
+      .groupBy(schema.leads.status);
+
+    // Leads by industry
+    const leadsByIndustry = await db
+      .select({
+        industryName: schema.industries.name,
+        count: sql<number>`count(*)`,
+      })
+      .from(schema.leads)
+      .leftJoin(schema.industries, eq(schema.leads.industryId, schema.industries.id))
+      .where(eq(schema.leads.tenantId, tenantId))
+      .groupBy(schema.industries.name);
+
+    // Leads by priority
+    const leadsByPriority = await db
+      .select({
+        priority: schema.leads.priority,
+        count: sql<number>`count(*)`,
+      })
+      .from(schema.leads)
+      .where(eq(schema.leads.tenantId, tenantId))
+      .groupBy(schema.leads.priority);
+
+    // Total leads
+    const [totalResult] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(schema.leads)
+      .where(eq(schema.leads.tenantId, tenantId));
+
+    // Converted leads
+    const [convertedResult] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(schema.leads)
+      .where(and(
+        eq(schema.leads.tenantId, tenantId),
+        eq(schema.leads.status, 'converted')
+      ));
+
+    // Total estimated value
+    const [valueResult] = await db
+      .select({ total: sql<number>`sum(${schema.leads.estimatedValue})` })
+      .from(schema.leads)
+      .where(eq(schema.leads.tenantId, tenantId));
+
+    const totalLeads = Number(totalResult.count);
+    const convertedLeads = Number(convertedResult.count);
+    const conversionRate = totalLeads > 0 ? (convertedLeads / totalLeads) * 100 : 0;
+
+    return {
+      leadsByStatus: leadsByStatus.map(row => ({
+        status: row.status || 'unknown',
+        count: Number(row.count),
+      })),
+      leadsByIndustry: leadsByIndustry.map(row => ({
+        industryName: row.industryName || 'Unknown',
+        count: Number(row.count),
+      })),
+      leadsByPriority: leadsByPriority.map(row => ({
+        priority: row.priority || 'unknown',
+        count: Number(row.count),
+      })),
+      conversionRate: Number(conversionRate.toFixed(2)),
+      totalEstimatedValue: Number(valueResult.total) || 0,
+      totalLeads,
     };
   }
 }
