@@ -3,21 +3,33 @@ import { pgTable, text, varchar, timestamp, boolean, integer, jsonb } from "driz
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Tenants table for multi-tenancy
+export const tenants = pgTable("tenants", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  subdomain: text("subdomain").unique(),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Users table
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  username: text("username").notNull().unique(),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  username: text("username").notNull(),
   password: text("password").notNull(),
   fullName: text("full_name").notNull(),
-  email: text("email").notNull().unique(),
-  role: varchar("role", { length: 50 }).notNull().default("auditor"), // auditor, channel_partner, admin
+  email: text("email").notNull(),
+  role: varchar("role", { length: 50 }).notNull().default("auditor"), // admin, auditor, lead_manager, viewer
+  isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 // Industries master data
 export const industries = pgTable("industries", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  name: text("name").notNull().unique(),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  name: text("name").notNull(),
   description: text("description"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -25,7 +37,8 @@ export const industries = pgTable("industries", {
 // Audit Types master data
 export const auditTypes = pgTable("audit_types", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  name: text("name").notNull().unique(),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  name: text("name").notNull(),
   description: text("description"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -33,6 +46,7 @@ export const auditTypes = pgTable("audit_types", {
 // Checklists (templates)
 export const checklists = pgTable("checklists", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: 'cascade' }),
   name: text("name").notNull(),
   auditTypeId: varchar("audit_type_id").references(() => auditTypes.id),
   isActive: boolean("is_active").default(true).notNull(),
@@ -52,7 +66,8 @@ export const checklistItems = pgTable("checklist_items", {
 // Audits
 export const audits = pgTable("audits", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  auditNumber: text("audit_number").notNull().unique(),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  auditNumber: text("audit_number").notNull(),
   customerId: text("customer_id").notNull(),
   customerName: text("customer_name").notNull(),
   siteLocation: text("site_location").notNull(),
@@ -61,7 +76,7 @@ export const audits = pgTable("audits", {
   auditorId: varchar("auditor_id").references(() => users.id),
   auditorName: text("auditor_name").notNull(),
   auditDate: timestamp("audit_date").notNull(),
-  status: varchar("status", { length: 50 }).notNull().default("planning"), // planning, in_progress, completed, cancelled
+  status: varchar("status", { length: 50 }).notNull().default("draft"), // draft, review, approved, closed, rejected
   geoLocation: text("geo_location"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -102,14 +117,15 @@ export const businessIntelligence = pgTable("business_intelligence", {
 // Leads
 export const leads = pgTable("leads", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  leadNumber: text("lead_number").notNull().unique(),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+  leadNumber: text("lead_number").notNull(),
   auditId: varchar("audit_id").references(() => audits.id),
   companyName: text("company_name").notNull(),
   contactPerson: text("contact_person").notNull(),
   email: text("email").notNull(),
   phone: text("phone").notNull(),
   industryId: varchar("industry_id").references(() => industries.id),
-  status: varchar("status", { length: 50 }).notNull().default("new"), // new, contacted, qualified, proposal, won, lost
+  status: varchar("status", { length: 50 }).notNull().default("new"), // new, qualified, in_progress, converted, closed
   priority: varchar("priority", { length: 50 }).notNull().default("medium"), // low, medium, high, urgent
   estimatedValue: integer("estimated_value"),
   notes: text("notes"),
@@ -143,7 +159,21 @@ export const followUpActions = pgTable("follow_up_actions", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Refresh Tokens for JWT management
+export const refreshTokens = pgTable("refresh_tokens", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  token: text("token").notNull().unique(),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Insert schemas and types
+export const insertTenantSchema = createInsertSchema(tenants).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   createdAt: true,
@@ -206,7 +236,22 @@ export const insertFollowUpActionSchema = createInsertSchema(followUpActions).om
   createdAt: true,
 });
 
+// Authentication schemas
+export const loginSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(6),
+});
+
+export const registerSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(6),
+  fullName: z.string().min(1),
+  username: z.string().min(3),
+  tenantName: z.string().min(1).optional(),
+});
+
 // Select types
+export type Tenant = typeof tenants.$inferSelect;
 export type User = typeof users.$inferSelect;
 export type Industry = typeof industries.$inferSelect;
 export type AuditType = typeof auditTypes.$inferSelect;
@@ -219,8 +264,10 @@ export type BusinessIntelligence = typeof businessIntelligence.$inferSelect;
 export type Lead = typeof leads.$inferSelect;
 export type File = typeof files.$inferSelect;
 export type FollowUpAction = typeof followUpActions.$inferSelect;
+export type RefreshToken = typeof refreshTokens.$inferSelect;
 
 // Insert types
+export type InsertTenant = z.infer<typeof insertTenantSchema>;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertIndustry = z.infer<typeof insertIndustrySchema>;
 export type InsertAuditType = z.infer<typeof insertAuditTypeSchema>;
@@ -233,3 +280,7 @@ export type InsertBusinessIntelligence = z.infer<typeof insertBusinessIntelligen
 export type InsertLead = z.infer<typeof insertLeadSchema>;
 export type InsertFile = z.infer<typeof insertFileSchema>;
 export type InsertFollowUpAction = z.infer<typeof insertFollowUpActionSchema>;
+
+// Auth types
+export type LoginCredentials = z.infer<typeof loginSchema>;
+export type RegisterData = z.infer<typeof registerSchema>;

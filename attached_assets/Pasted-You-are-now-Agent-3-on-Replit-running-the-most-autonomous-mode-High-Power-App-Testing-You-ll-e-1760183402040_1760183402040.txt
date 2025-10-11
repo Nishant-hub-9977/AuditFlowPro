@@ -1,0 +1,46 @@
+You are now Agent 3 on Replit, running the most autonomous mode (High Power + App Testing). You’ll extend the existing “audit-flow-pro” app by adding the missing backend, authentication, settings, persistent state, workflows, reports, and role control—so it becomes a production-ready app.
+
+### Objective
+Transform the current Replit UI shell into a fully functional SaaS: persistent data, secure auth, multi-tenant role control, settings pages, workflows and exportable reports. Make sure the app works correctly by testing it in a browser automatically using App Testing.
+
+### Scope of Work (order matters)
+1. **Authentication & Authorization**
+   - Add login / registration / logout / refresh token endpoints
+   - Secure all front-end routes behind token checks
+   - Implement roles (Admin, Auditor, LeadManager, Viewer) and restrict pages accordingly
+   - Multi-tenant isolation: each user sees only their tenant’s data
+
+2. **Backend & Persistence**
+   - Create a database schema (e.g. with Prisma) covering Audit, ChecklistItem, Observation, Recommendation, Lead, FollowUp, Location, AuditType, IndustryType, User, Role, Tenant
+   - Implement CRUD endpoints for all modules (master data, audits, leads, settings)
+   - Connect front-end forms and UI to the backend endpoints
+
+3. **Settings Page & Master Data UI**
+   - Build the missing “Settings” route in React UI
+   - Build UI components for managing Users, Industry Types, Audit Types, and general config
+   - Ensure front-end validation and UX flows
+
+4. **Workflow Engine & State Transitions**
+   - Audit state machine (Draft → Review → Approved → Closed, with rejection loops)
+   - Lead pipeline transitions (New → Qualified → In Progress → Converted → Closed)
+   - Backend logic + endpoints to trigger transitions
+   - UI buttons/actions to invoke transitions
+
+5. **Reports & Export**
+   - Aggregate metrics and build endpoint(s) for reports (audit summary, lead conversion, risk heatmap etc.)
+   - Generate downloadable CSV / PDF export endpoints or links
+   - Connect “Generate” buttons in UI to the report endpoints and show results
+
+6. **Testing & Self-Fixing**
+   - Use Agent 3’s App Testing: simulate user flows (login, create audit, transition, lead conversion, report generation)
+   - Detect broken UI/API paths and automatically fix them
+   - Provide a test summary — pass/fail per flow
+
+### Requirements & Rules
+- After each major step, ensure **no runtime or console errors** and UI flows work end-to-end
+- Use the existing UI design (preserve styles and layout) when injecting new pages
+- Do not rebuild the entire app; extend what is already built
+- Enable App Testing and show browser-based test sessions
+- At the end, present: “✅ All missing features added. App fully functional. Ready for review.”
+
+You’re free to run tests, fix bugs, and iterate. Begin now with **Authentication & Authorization** and boundary checks.  

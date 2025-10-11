@@ -1,22 +1,46 @@
 import { db } from "./db";
 import * as schema from "@shared/schema";
 import { eq } from "drizzle-orm";
+import bcrypt from "bcrypt";
 
 async function seed() {
   console.log("🌱 Seeding database...");
 
+  // Create default tenant
+  console.log("Creating default tenant...");
+  const [defaultTenant] = await db.insert(schema.tenants).values({
+    name: "Default Organization",
+    subdomain: "default",
+    isActive: true,
+  }).returning().onConflictDoNothing();
+
+  const tenantId = defaultTenant.id;
+
+  // Create default admin user
+  console.log("Creating default admin user...");
+  const hashedPassword = await bcrypt.hash("admin123", 10);
+  await db.insert(schema.users).values({
+    tenantId,
+    username: "admin",
+    password: hashedPassword,
+    fullName: "System Administrator",
+    email: "admin@example.com",
+    role: "admin",
+    isActive: true,
+  }).onConflictDoNothing();
+
   // Seed Industries
   const industries = [
-    { name: "Manufacturing", description: "Manufacturing and production facilities" },
-    { name: "Healthcare", description: "Healthcare and medical facilities" },
-    { name: "Retail", description: "Retail stores and shopping centers" },
-    { name: "Food & Beverage", description: "Restaurants, cafes, and food processing" },
-    { name: "Construction", description: "Construction sites and infrastructure" },
-    { name: "Logistics", description: "Warehousing and distribution centers" },
-    { name: "Education", description: "Schools, colleges, and training centers" },
-    { name: "Hospitality", description: "Hotels, resorts, and accommodation" },
-    { name: "Technology", description: "IT companies and data centers" },
-    { name: "Agriculture", description: "Farms and agricultural facilities" },
+    { tenantId, name: "Manufacturing", description: "Manufacturing and production facilities" },
+    { tenantId, name: "Healthcare", description: "Healthcare and medical facilities" },
+    { tenantId, name: "Retail", description: "Retail stores and shopping centers" },
+    { tenantId, name: "Food & Beverage", description: "Restaurants, cafes, and food processing" },
+    { tenantId, name: "Construction", description: "Construction sites and infrastructure" },
+    { tenantId, name: "Logistics", description: "Warehousing and distribution centers" },
+    { tenantId, name: "Education", description: "Schools, colleges, and training centers" },
+    { tenantId, name: "Hospitality", description: "Hotels, resorts, and accommodation" },
+    { tenantId, name: "Technology", description: "IT companies and data centers" },
+    { tenantId, name: "Agriculture", description: "Farms and agricultural facilities" },
   ];
 
   console.log("Creating industries...");
@@ -26,14 +50,14 @@ async function seed() {
 
   // Seed Audit Types
   const auditTypes = [
-    { name: "Safety Audit", description: "Comprehensive workplace safety inspection" },
-    { name: "Quality Audit", description: "Product and process quality assessment" },
-    { name: "Environmental Audit", description: "Environmental compliance and sustainability audit" },
-    { name: "Compliance Audit", description: "Regulatory and legal compliance audit" },
-    { name: "Financial Audit", description: "Financial controls and accounting audit" },
-    { name: "Operational Audit", description: "Operational efficiency and process audit" },
-    { name: "Security Audit", description: "Physical and information security audit" },
-    { name: "Fire Safety Audit", description: "Fire safety systems and procedures audit" },
+    { tenantId, name: "Safety Audit", description: "Comprehensive workplace safety inspection" },
+    { tenantId, name: "Quality Audit", description: "Product and process quality assessment" },
+    { tenantId, name: "Environmental Audit", description: "Environmental compliance and sustainability audit" },
+    { tenantId, name: "Compliance Audit", description: "Regulatory and legal compliance audit" },
+    { tenantId, name: "Financial Audit", description: "Financial controls and accounting audit" },
+    { tenantId, name: "Operational Audit", description: "Operational efficiency and process audit" },
+    { tenantId, name: "Security Audit", description: "Physical and information security audit" },
+    { tenantId, name: "Fire Safety Audit", description: "Fire safety systems and procedures audit" },
   ];
 
   console.log("Creating audit types...");
@@ -51,6 +75,7 @@ async function seed() {
     
     // Create a sample Safety Audit checklist
     const [checklist] = await db.insert(schema.checklists).values({
+      tenantId,
       name: "General Safety Audit Checklist",
       auditTypeId: safetyAuditType.id,
       isActive: true,
@@ -88,6 +113,7 @@ async function seed() {
     console.log("Creating quality audit checklist...");
     
     const [qualityChecklist] = await db.insert(schema.checklists).values({
+      tenantId,
       name: "ISO 9001 Quality Management Checklist",
       auditTypeId: qualityAuditType.id,
       isActive: true,
@@ -112,6 +138,9 @@ async function seed() {
   }
 
   console.log("✅ Database seeded successfully!");
+  console.log("📝 Default admin credentials:");
+  console.log("   Email: admin@example.com");
+  console.log("   Password: admin123");
 }
 
 seed().catch((error) => {

@@ -14,11 +14,16 @@ import {
   insertFileSchema,
   insertFollowUpActionSchema,
 } from "@shared/schema";
+import authRoutes from "./authRoutes";
+import { authenticateToken, authorizeRoles, type AuthRequest } from "./auth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
-  // Dashboard Stats
-  app.get("/api/dashboard/stats", async (req, res) => {
+  // Auth routes (public)
+  app.use("/api/auth", authRoutes);
+  
+  // Dashboard Stats (protected)
+  app.get("/api/dashboard/stats", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const stats = await storage.getDashboardStats();
       res.json(stats);
