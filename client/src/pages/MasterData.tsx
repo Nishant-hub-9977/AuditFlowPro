@@ -41,8 +41,8 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import type { Industry, AuditType, User, InsertUser, InsertIndustry, InsertAuditType } from "@shared/schema";
-import { insertUserSchema, insertIndustrySchema, insertAuditTypeSchema } from "@shared/schema";
+import type { Industry, AuditType, User, InsertUser, InsertIndustry, InsertAuditType, UserRole } from "@shared/schema";
+import { insertUserSchema, insertIndustrySchema, insertAuditTypeSchema, userRoles } from "@shared/schema";
 import { format } from "date-fns";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -77,12 +77,16 @@ export default function MasterData() {
 
   const userForm = useForm<z.infer<typeof userFormSchema>>({
     resolver: zodResolver(userFormSchema),
-    defaultValues: editingUser || {
+    defaultValues: editingUser ? {
+      ...editingUser,
+      password: undefined,
+      role: editingUser.role as UserRole
+    } : {
       username: "",
       password: "",
       fullName: "",
       email: "",
-      role: "auditor",
+      role: "auditor" as UserRole,
       isActive: true,
     },
   });
@@ -292,7 +296,7 @@ export default function MasterData() {
               data-testid="button-add-user"
               onClick={() => {
                 setEditingUser(null);
-                userForm.reset({ username: "", password: "", fullName: "", email: "", role: "auditor", isActive: true });
+                userForm.reset({ username: "", password: "", fullName: "", email: "", role: "auditor" as UserRole, isActive: true });
                 setUserDialogOpen(true);
               }}
             >
@@ -335,7 +339,7 @@ export default function MasterData() {
                             data-testid={`button-edit-user-${user.id}`}
                             onClick={() => {
                               setEditingUser(user);
-                              userForm.reset({ ...user, password: undefined });
+                              userForm.reset({ ...user, password: undefined, role: user.role as UserRole });
                               setUserDialogOpen(true);
                             }}
                           >
@@ -393,7 +397,7 @@ export default function MasterData() {
                                 data-testid={`button-edit-user-${user.id}`}
                                 onClick={() => {
                                   setEditingUser(user);
-                                  userForm.reset({ ...user, password: undefined });
+                                  userForm.reset({ ...user, password: undefined, role: user.role as UserRole });
                                   setUserDialogOpen(true);
                                 }}
                               >
@@ -755,10 +759,10 @@ export default function MasterData() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
+                        <SelectItem value="master_admin">Master Admin</SelectItem>
                         <SelectItem value="admin">Admin</SelectItem>
+                        <SelectItem value="client">Client</SelectItem>
                         <SelectItem value="auditor">Auditor</SelectItem>
-                        <SelectItem value="lead_manager">Lead Manager</SelectItem>
-                        <SelectItem value="viewer">Viewer</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />

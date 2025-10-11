@@ -3,6 +3,10 @@ import { pgTable, text, varchar, timestamp, boolean, integer, jsonb } from "driz
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Role types
+export const userRoles = ["master_admin", "admin", "client", "auditor"] as const;
+export type UserRole = typeof userRoles[number];
+
 // Tenants table for multi-tenancy
 export const tenants = pgTable("tenants", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -20,7 +24,7 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   fullName: text("full_name").notNull(),
   email: text("email").notNull().unique(),
-  role: varchar("role", { length: 50 }).notNull().default("auditor"), // admin, auditor, lead_manager, viewer
+  role: varchar("role", { length: 50 }).notNull().default("auditor"), // master_admin, admin, client, auditor
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -177,6 +181,8 @@ export const insertTenantSchema = createInsertSchema(tenants).omit({
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   createdAt: true,
+}).extend({
+  role: z.enum(userRoles).default("auditor"),
 });
 
 export const insertIndustrySchema = createInsertSchema(industries).omit({

@@ -1,0 +1,26 @@
+You are Replit Agent (High Power). The app's UI has missing or non-functional parts, and no authentication or profile roles are defined yet. Please implement:
+
+1. **Settings Page**  
+   - The Settings route currently returns 404. Create the React page/component `Settings.tsx` and add it to the router.  
+   - Inside Settings, allow management of user accounts and profile roles (Admin, Master Admin, Client, Auditor).  
+   - Add forms to create/edit users: name, email, password, role(s), tenant association (if multi-tenant).  
+   - Fetch user list from API, show editable table, and allow role assignments.  
+   - Protect Settings page so only Admin or Master Admin profiles can access it.
+
+2. **Profile Types & Role-Based Authentication**  
+   - Define four user roles: **Admin**, **Master Admin**, **Client**, **Auditor**.  
+   - Build **login / registration** endpoints (backend) supporting these roles.  
+   - On frontend, create a login page that requests email and password, obtains tokens, stores them securely, and then redirects to dashboard.  
+   - Once logged in, display a top menu or header with dropdown “Profile: [role] / Logout”  
+   - Wire a **Logout** button: clears tokens, invalidates session, redirects to login.  
+   - Apply route guards across the UI so pages appear / disappear or are enabled/disabled based on role. For example, Settings should only be accessible to Admin & Master Admin, Audits pages to Auditor & Client, Leads pages to Client & Admin, etc.
+
+3. **Do all of this without breaking existing functionality**  
+   - Preserve current UI styling, navigation structure, modals, report layouts, etc.  
+   - Before applying changes, produce a **plan summary** listing what files / components you'll update and how you will ensure backward compatibility.  
+   - After each incremental change, run tests or simulate flows (login → navigate → logout → role pages) to detect regressions and fix them immediately.  
+
+At the end, output:  
+“✅ Settings page live. Profile roles & login/logout fully functional. Role-based access enforced. All existing features preserved.”  
+
+Begin with the **plan summary** for Settings + authentication + roles BEFORE coding.  
