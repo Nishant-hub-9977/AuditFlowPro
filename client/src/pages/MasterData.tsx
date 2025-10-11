@@ -15,20 +15,11 @@ import { useQuery } from "@tanstack/react-query";
 import type { Industry, AuditType, User } from "@shared/schema";
 import { format } from "date-fns";
 
-//todo: remove mock functionality
-const users = [
-  { id: 1, name: "John Smith", email: "john@example.com", role: "Auditor", status: "Active" },
-  { id: 2, name: "Sarah Johnson", email: "sarah@example.com", role: "Admin", status: "Active" },
-  { id: 3, name: "Mike Davis", email: "mike@example.com", role: "Auditor", status: "Active" },
-];
-
-const customers = [
-  { id: 1, name: "PharmaCorp Ltd", industry: "Pharma", audits: 12, status: "Active" },
-  { id: 2, name: "ChemTech Industries", industry: "Chemical", audits: 8, status: "Active" },
-  { id: 3, name: "BioMed Systems", industry: "Pharma", audits: 15, status: "Active" },
-];
-
 export default function MasterData() {
+  const { data: users = [], isLoading: usersLoading } = useQuery<User[]>({
+    queryKey: ["/api/users"],
+  });
+
   const { data: industries = [], isLoading: industriesLoading } = useQuery<Industry[]>({
     queryKey: ["/api/industries"],
   });
@@ -44,14 +35,13 @@ export default function MasterData() {
           Master Data Configuration
         </h1>
         <p className="text-muted-foreground mt-1">
-          Manage users, customers, and system configurations
+          Manage users, industry types, audit types, and system configurations
         </p>
       </div>
 
       <Tabs defaultValue="users">
         <TabsList>
           <TabsTrigger value="users" data-testid="tab-users">Users</TabsTrigger>
-          <TabsTrigger value="customers" data-testid="tab-customers">Customers</TabsTrigger>
           <TabsTrigger value="industry" data-testid="tab-industry">Industry Types</TabsTrigger>
           <TabsTrigger value="audit-types" data-testid="tab-audit-types">Audit Types</TabsTrigger>
         </TabsList>
@@ -64,135 +54,83 @@ export default function MasterData() {
             </Button>
           </div>
 
-          {/* Mobile Card View */}
-          <div className="md:hidden space-y-3">
-            {users.map((user) => (
-              <Card key={user.id} data-testid={`card-user-${user.id}`} className="hover-elevate">
-                <CardContent className="p-4 space-y-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-lg font-semibold" data-testid={`text-name-${user.id}`}>{user.name}</p>
-                      <p className="text-sm text-muted-foreground mt-0.5" data-testid={`text-email-${user.id}`}>{user.email}</p>
-                    </div>
-                    <Badge variant="default" data-testid={`badge-status-${user.id}`}>{user.status}</Badge>
-                  </div>
-                  
-                  <div className="flex items-center justify-between pt-2 border-t">
-                    <Badge variant="outline" data-testid={`badge-role-${user.id}`}>{user.role}</Badge>
-                    <Button variant="ghost" size="sm" data-testid={`button-edit-user-${user.id}`}>
-                      Edit
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          {/* Desktop Table View */}
-          <div className="hidden md:block overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
-            <div className="rounded-lg border min-w-[700px]">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Role</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {users.map((user) => (
-                    <TableRow key={user.id} data-testid={`row-user-${user.id}`}>
-                      <TableCell>{user.name}</TableCell>
-                      <TableCell className="text-muted-foreground">{user.email}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{user.role}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="default">{user.status}</Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
+          {usersLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <p className="text-muted-foreground">Loading users...</p>
+            </div>
+          ) : users.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <p className="text-muted-foreground">No users found</p>
+              <p className="text-sm text-muted-foreground mt-1">Add your first user to get started</p>
+            </div>
+          ) : (
+            <>
+              {/* Mobile Card View */}
+              <div className="md:hidden space-y-3">
+                {users.map((user) => (
+                  <Card key={user.id} data-testid={`card-user-${user.id}`} className="hover-elevate">
+                    <CardContent className="p-4 space-y-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-lg font-semibold" data-testid={`text-name-${user.id}`}>{user.fullName}</p>
+                          <p className="text-sm text-muted-foreground mt-0.5" data-testid={`text-email-${user.id}`}>{user.email}</p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center justify-between pt-2 border-t">
+                        <Badge variant="outline" data-testid={`badge-role-${user.id}`}>
+                          {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                        </Badge>
                         <Button variant="ghost" size="sm" data-testid={`button-edit-user-${user.id}`}>
                           Edit
                         </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </div>
-        </TabsContent>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
 
-        <TabsContent value="customers" className="space-y-4">
-          <div className="flex justify-end">
-            <Button data-testid="button-add-customer">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Customer
-            </Button>
-          </div>
-
-          {/* Mobile Card View */}
-          <div className="md:hidden space-y-3">
-            {customers.map((customer) => (
-              <Card key={customer.id} data-testid={`card-customer-${customer.id}`} className="hover-elevate">
-                <CardContent className="p-4 space-y-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-lg font-semibold" data-testid={`text-name-${customer.id}`}>{customer.name}</p>
-                      <p className="text-sm text-muted-foreground mt-0.5" data-testid={`text-industry-${customer.id}`}>{customer.industry}</p>
-                    </div>
-                    <Badge variant="default" data-testid={`badge-status-${customer.id}`}>{customer.status}</Badge>
-                  </div>
-                  
-                  <div className="flex items-center justify-between pt-2 border-t">
-                    <div>
-                      <p className="text-muted-foreground text-sm">Total Audits</p>
-                      <p className="font-semibold" data-testid={`text-audits-${customer.id}`}>{customer.audits}</p>
-                    </div>
-                    <Button variant="ghost" size="sm" data-testid={`button-edit-customer-${customer.id}`}>
-                      Edit
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          {/* Desktop Table View */}
-          <div className="hidden md:block overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
-            <div className="rounded-lg border min-w-[700px]">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Company Name</TableHead>
-                    <TableHead>Industry</TableHead>
-                    <TableHead>Total Audits</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {customers.map((customer) => (
-                    <TableRow key={customer.id} data-testid={`row-customer-${customer.id}`}>
-                      <TableCell>{customer.name}</TableCell>
-                      <TableCell>{customer.industry}</TableCell>
-                      <TableCell>{customer.audits}</TableCell>
-                      <TableCell>
-                        <Badge variant="default">{customer.status}</Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="sm" data-testid={`button-edit-customer-${customer.id}`}>
-                          Edit
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </div>
+              {/* Desktop Table View */}
+              <div className="hidden md:block overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+                <div className="rounded-lg border min-w-[700px]">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Username</TableHead>
+                        <TableHead>Role</TableHead>
+                        <TableHead>Created</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {users.map((user) => (
+                        <TableRow key={user.id} data-testid={`row-user-${user.id}`}>
+                          <TableCell className="font-medium">{user.fullName}</TableCell>
+                          <TableCell className="text-muted-foreground">{user.email}</TableCell>
+                          <TableCell className="font-mono text-sm">{user.username}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline">
+                              {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {format(new Date(user.createdAt), "MMM dd, yyyy")}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button variant="ghost" size="sm" data-testid={`button-edit-user-${user.id}`}>
+                              Edit
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            </>
+          )}
         </TabsContent>
 
         <TabsContent value="industry" className="space-y-4">
