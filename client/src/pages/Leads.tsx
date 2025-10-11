@@ -29,7 +29,7 @@ export default function Leads() {
   });
 
   const qualifyMutation = useMutation({
-    mutationFn: (leadId: string) => apiRequest(`/api/leads/${leadId}/qualify`, "POST"),
+    mutationFn: (leadId: string) => apiRequest("POST", `/api/leads/${leadId}/qualify`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
       toast({ title: "Success", description: "Lead qualified" });
@@ -40,7 +40,7 @@ export default function Leads() {
   });
 
   const startProgressMutation = useMutation({
-    mutationFn: (leadId: string) => apiRequest(`/api/leads/${leadId}/start-progress`, "POST"),
+    mutationFn: (leadId: string) => apiRequest("POST", `/api/leads/${leadId}/start-progress`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
       toast({ title: "Success", description: "Lead moved to in progress" });
@@ -51,7 +51,7 @@ export default function Leads() {
   });
 
   const convertMutation = useMutation({
-    mutationFn: (leadId: string) => apiRequest(`/api/leads/${leadId}/convert`, "POST"),
+    mutationFn: (leadId: string) => apiRequest("POST", `/api/leads/${leadId}/convert`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
       toast({ title: "Success", description: "Lead converted successfully" });
@@ -62,7 +62,7 @@ export default function Leads() {
   });
 
   const closeMutation = useMutation({
-    mutationFn: (leadId: string) => apiRequest(`/api/leads/${leadId}/close`, "POST"),
+    mutationFn: (leadId: string) => apiRequest("POST", `/api/leads/${leadId}/close`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
       toast({ title: "Success", description: "Lead closed" });

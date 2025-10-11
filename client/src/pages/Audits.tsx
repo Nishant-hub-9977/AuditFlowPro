@@ -30,7 +30,7 @@ export default function Audits() {
   });
 
   const submitForReviewMutation = useMutation({
-    mutationFn: (auditId: string) => apiRequest(`/api/audits/${auditId}/submit-for-review`, "POST"),
+    mutationFn: (auditId: string) => apiRequest("POST", `/api/audits/${auditId}/submit-for-review`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/audits"] });
       toast({ title: "Success", description: "Audit submitted for review" });
@@ -41,7 +41,7 @@ export default function Audits() {
   });
 
   const approveMutation = useMutation({
-    mutationFn: (auditId: string) => apiRequest(`/api/audits/${auditId}/approve`, "POST"),
+    mutationFn: (auditId: string) => apiRequest("POST", `/api/audits/${auditId}/approve`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/audits"] });
       toast({ title: "Success", description: "Audit approved" });
@@ -52,7 +52,7 @@ export default function Audits() {
   });
 
   const rejectMutation = useMutation({
-    mutationFn: (auditId: string) => apiRequest(`/api/audits/${auditId}/reject`, "POST"),
+    mutationFn: (auditId: string) => apiRequest("POST", `/api/audits/${auditId}/reject`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/audits"] });
       toast({ title: "Success", description: "Audit rejected and returned to draft" });
@@ -63,7 +63,7 @@ export default function Audits() {
   });
 
   const closeMutation = useMutation({
-    mutationFn: (auditId: string) => apiRequest(`/api/audits/${auditId}/close`, "POST"),
+    mutationFn: (auditId: string) => apiRequest("POST", `/api/audits/${auditId}/close`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/audits"] });
       toast({ title: "Success", description: "Audit closed" });

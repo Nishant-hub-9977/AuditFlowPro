@@ -505,7 +505,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/audits", async (req, res) => {
+  app.post("/api/audits", async (req: AuthRequest, res) => {
     try {
       if (!req.user) {
         return res.status(401).json({ message: "Unauthorized" });
@@ -551,7 +551,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Audit Workflow Transitions
-  app.post("/api/audits/:id/submit-for-review", async (req, res) => {
+  app.post("/api/audits/:id/submit-for-review", async (req: AuthRequest, res) => {
     try {
       if (!req.user) {
         return res.status(401).json({ message: "Unauthorized" });
@@ -566,7 +566,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/audits/:id/approve", async (req, res) => {
+  app.post("/api/audits/:id/approve", async (req: AuthRequest, res) => {
     try {
       if (!req.user) {
         return res.status(401).json({ message: "Unauthorized" });
@@ -584,7 +584,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/audits/:id/reject", async (req, res) => {
+  app.post("/api/audits/:id/reject", async (req: AuthRequest, res) => {
     try {
       if (!req.user) {
         return res.status(401).json({ message: "Unauthorized" });
@@ -602,7 +602,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/audits/:id/close", async (req, res) => {
+  app.post("/api/audits/:id/close", async (req: AuthRequest, res) => {
     try {
       if (!req.user) {
         return res.status(401).json({ message: "Unauthorized" });
@@ -797,7 +797,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/leads", async (req, res) => {
+  app.post("/api/leads", async (req: AuthRequest, res) => {
     try {
       if (!req.user) {
         return res.status(401).json({ message: "Unauthorized" });
@@ -838,7 +838,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Lead Workflow Transitions
-  app.post("/api/leads/:id/qualify", async (req, res) => {
+  app.post("/api/leads/:id/qualify", async (req: AuthRequest, res) => {
     try {
       if (!req.user) {
         return res.status(401).json({ message: "Unauthorized" });
@@ -856,7 +856,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/leads/:id/start-progress", async (req, res) => {
+  app.post("/api/leads/:id/start-progress", async (req: AuthRequest, res) => {
     try {
       if (!req.user) {
         return res.status(401).json({ message: "Unauthorized" });
@@ -874,7 +874,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/leads/:id/convert", async (req, res) => {
+  app.post("/api/leads/:id/convert", async (req: AuthRequest, res) => {
     try {
       if (!req.user) {
         return res.status(401).json({ message: "Unauthorized" });
@@ -892,7 +892,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/leads/:id/close", async (req, res) => {
+  app.post("/api/leads/:id/close", async (req: AuthRequest, res) => {
     try {
       if (!req.user) {
         return res.status(401).json({ message: "Unauthorized" });
