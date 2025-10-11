@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { 
+  insertUserSchema,
   insertAuditSchema, 
   insertLeadSchema, 
   insertIndustrySchema, 
@@ -15,7 +16,7 @@ import {
   insertFollowUpActionSchema,
 } from "@shared/schema";
 import authRoutes from "./authRoutes";
-import { authenticateToken, authorizeRoles, type AuthRequest } from "./auth";
+import { authenticateToken, authorizeRoles, hashPassword, type AuthRequest } from "./auth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
@@ -43,7 +44,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Users (Admin only for list, authenticated for own profile)
   app.get("/api/users", authenticateToken, authorizeRoles("admin"), async (req: AuthRequest, res) => {
     try {
-      const users = await storage.getAllUsers();
+      const users = await storage.getAllUsers(req.user!.tenantId);
       res.json(users);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch users" });
@@ -52,7 +53,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/users/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const user = await storage.getUser(req.params.id);
+      const user = await storage.getUser(req.params.id, req.user!.tenantId);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
@@ -62,10 +63,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/users", authenticateToken, authorizeRoles("admin"), async (req: AuthRequest, res) => {
+    try {
+      const validated = insertUserSchema.omit({ tenantId: true }).parse(req.body);
+      const hashedPassword = await hashPassword(validated.password);
+      const user = await storage.createUser({
+        ...validated,
+        password: hashedPassword,
+        tenantId: req.user!.tenantId,
+      });
+      res.status(201).json(user);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid data" });
+    }
+  });
+
+  app.put("/api/users/:id", authenticateToken, authorizeRoles("admin"), async (req: AuthRequest, res) => {
+    try {
+      const validated = insertUserSchema.omit({ tenantId: true }).partial().parse(req.body);
+      const updateData = { ...validated };
+      
+      // Hash password if it's being updated
+      if (validated.password) {
+        updateData.password = await hashPassword(validated.password);
+      }
+      
+      const user = await storage.updateUser(req.params.id, req.user!.tenantId, updateData);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      res.json(user);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid data" });
+    }
+  });
+
+  app.delete("/api/users/:id", authenticateToken, authorizeRoles("admin"), async (req: AuthRequest, res) => {
+    try {
+      const deleted = await storage.deleteUser(req.params.id, req.user!.tenantId);
+      if (!deleted) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete user" });
+    }
+  });
+
   // Industries (Protected)
   app.get("/api/industries", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const industries = await storage.getAllIndustries();
+      const industries = await storage.getAllIndustries(req.user!.tenantId);
       res.json(industries);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch industries" });
@@ -74,7 +122,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/industries/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const industry = await storage.getIndustry(req.params.id);
+      const industry = await storage.getIndustry(req.params.id, req.user!.tenantId);
       if (!industry) {
         return res.status(404).json({ message: "Industry not found" });
       }
@@ -84,20 +132,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/industries", async (req, res) => {
+  app.post("/api/industries", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const validated = insertIndustrySchema.parse(req.body);
-      const industry = await storage.createIndustry(validated);
+      const validated = insertIndustrySchema.omit({ tenantId: true }).parse(req.body);
+      const industry = await storage.createIndustry({
+        ...validated,
+        tenantId: req.user!.tenantId,
+      });
       res.status(201).json(industry);
     } catch (error) {
       res.status(400).json({ message: "Invalid data" });
     }
   });
 
-  app.put("/api/industries/:id", async (req, res) => {
+  app.put("/api/industries/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const validated = insertIndustrySchema.partial().parse(req.body);
-      const industry = await storage.updateIndustry(req.params.id, validated);
+      const validated = insertIndustrySchema.omit({ tenantId: true }).partial().parse(req.body);
+      const industry = await storage.updateIndustry(req.params.id, req.user!.tenantId, validated);
       if (!industry) {
         return res.status(404).json({ message: "Industry not found" });
       }
@@ -107,9 +158,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/industries/:id", async (req, res) => {
+  app.delete("/api/industries/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const deleted = await storage.deleteIndustry(req.params.id);
+      const deleted = await storage.deleteIndustry(req.params.id, req.user!.tenantId);
       if (!deleted) {
         return res.status(404).json({ message: "Industry not found" });
       }
@@ -120,18 +171,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Audit Types
-  app.get("/api/audit-types", async (req, res) => {
+  app.get("/api/audit-types", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const auditTypes = await storage.getAllAuditTypes();
+      const auditTypes = await storage.getAllAuditTypes(req.user!.tenantId);
       res.json(auditTypes);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch audit types" });
     }
   });
 
-  app.get("/api/audit-types/:id", async (req, res) => {
+  app.get("/api/audit-types/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const auditType = await storage.getAuditType(req.params.id);
+      const auditType = await storage.getAuditType(req.params.id, req.user!.tenantId);
       if (!auditType) {
         return res.status(404).json({ message: "Audit type not found" });
       }
@@ -141,20 +192,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/audit-types", async (req, res) => {
+  app.post("/api/audit-types", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const validated = insertAuditTypeSchema.parse(req.body);
-      const auditType = await storage.createAuditType(validated);
+      const validated = insertAuditTypeSchema.omit({ tenantId: true }).parse(req.body);
+      const auditType = await storage.createAuditType({
+        ...validated,
+        tenantId: req.user!.tenantId,
+      });
       res.status(201).json(auditType);
     } catch (error) {
       res.status(400).json({ message: "Invalid data" });
     }
   });
 
-  app.put("/api/audit-types/:id", async (req, res) => {
+  app.put("/api/audit-types/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const validated = insertAuditTypeSchema.partial().parse(req.body);
-      const auditType = await storage.updateAuditType(req.params.id, validated);
+      const validated = insertAuditTypeSchema.omit({ tenantId: true }).partial().parse(req.body);
+      const auditType = await storage.updateAuditType(req.params.id, req.user!.tenantId, validated);
       if (!auditType) {
         return res.status(404).json({ message: "Audit type not found" });
       }
@@ -164,9 +218,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/audit-types/:id", async (req, res) => {
+  app.delete("/api/audit-types/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const deleted = await storage.deleteAuditType(req.params.id);
+      const deleted = await storage.deleteAuditType(req.params.id, req.user!.tenantId);
       if (!deleted) {
         return res.status(404).json({ message: "Audit type not found" });
       }

@@ -16,10 +16,10 @@ export const tenants = pgTable("tenants", {
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: 'cascade' }),
-  username: text("username").notNull(),
+  username: text("username").notNull().unique(),
   password: text("password").notNull(),
   fullName: text("full_name").notNull(),
-  email: text("email").notNull(),
+  email: text("email").notNull().unique(),
   role: varchar("role", { length: 50 }).notNull().default("auditor"), // admin, auditor, lead_manager, viewer
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),

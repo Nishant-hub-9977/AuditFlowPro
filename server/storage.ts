@@ -18,25 +18,27 @@ import type {
 
 export interface IStorage {
   // Users
-  getUser(id: string): Promise<User | undefined>;
+  getUser(id: string, tenantId: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
-  getAllUsers(): Promise<User[]>;
+  getAllUsers(tenantId: string): Promise<User[]>;
+  updateUser(id: string, tenantId: string, user: Partial<InsertUser>): Promise<User | undefined>;
+  deleteUser(id: string, tenantId: string): Promise<boolean>;
 
   // Industries
-  getIndustry(id: string): Promise<Industry | undefined>;
+  getIndustry(id: string, tenantId: string): Promise<Industry | undefined>;
   createIndustry(industry: InsertIndustry): Promise<Industry>;
-  getAllIndustries(): Promise<Industry[]>;
-  updateIndustry(id: string, industry: Partial<InsertIndustry>): Promise<Industry | undefined>;
-  deleteIndustry(id: string): Promise<boolean>;
+  getAllIndustries(tenantId: string): Promise<Industry[]>;
+  updateIndustry(id: string, tenantId: string, industry: Partial<InsertIndustry>): Promise<Industry | undefined>;
+  deleteIndustry(id: string, tenantId: string): Promise<boolean>;
 
   // Audit Types
-  getAuditType(id: string): Promise<AuditType | undefined>;
+  getAuditType(id: string, tenantId: string): Promise<AuditType | undefined>;
   createAuditType(auditType: InsertAuditType): Promise<AuditType>;
-  getAllAuditTypes(): Promise<AuditType[]>;
-  updateAuditType(id: string, auditType: Partial<InsertAuditType>): Promise<AuditType | undefined>;
-  deleteAuditType(id: string): Promise<boolean>;
+  getAllAuditTypes(tenantId: string): Promise<AuditType[]>;
+  updateAuditType(id: string, tenantId: string, auditType: Partial<InsertAuditType>): Promise<AuditType | undefined>;
+  deleteAuditType(id: string, tenantId: string): Promise<boolean>;
 
   // Checklists
   getChecklist(id: string): Promise<Checklist | undefined>;
@@ -116,8 +118,9 @@ export interface IStorage {
 
 export class DbStorage implements IStorage {
   // Users
-  async getUser(id: string): Promise<User | undefined> {
-    const [user] = await db.select().from(schema.users).where(eq(schema.users.id, id));
+  async getUser(id: string, tenantId: string): Promise<User | undefined> {
+    const [user] = await db.select().from(schema.users)
+      .where(and(eq(schema.users.id, id), eq(schema.users.tenantId, tenantId)));
     return user;
   }
 
@@ -136,13 +139,30 @@ export class DbStorage implements IStorage {
     return user;
   }
 
-  async getAllUsers(): Promise<User[]> {
-    return await db.select().from(schema.users).orderBy(desc(schema.users.createdAt));
+  async getAllUsers(tenantId: string): Promise<User[]> {
+    return await db.select().from(schema.users)
+      .where(eq(schema.users.tenantId, tenantId))
+      .orderBy(desc(schema.users.createdAt));
+  }
+
+  async updateUser(id: string, tenantId: string, user: Partial<InsertUser>): Promise<User | undefined> {
+    const [updated] = await db.update(schema.users)
+      .set(user)
+      .where(and(eq(schema.users.id, id), eq(schema.users.tenantId, tenantId)))
+      .returning();
+    return updated;
+  }
+
+  async deleteUser(id: string, tenantId: string): Promise<boolean> {
+    const result = await db.delete(schema.users)
+      .where(and(eq(schema.users.id, id), eq(schema.users.tenantId, tenantId)));
+    return (result.rowCount ?? 0) > 0;
   }
 
   // Industries
-  async getIndustry(id: string): Promise<Industry | undefined> {
-    const [industry] = await db.select().from(schema.industries).where(eq(schema.industries.id, id));
+  async getIndustry(id: string, tenantId: string): Promise<Industry | undefined> {
+    const [industry] = await db.select().from(schema.industries)
+      .where(and(eq(schema.industries.id, id), eq(schema.industries.tenantId, tenantId)));
     return industry;
   }
 
@@ -151,26 +171,30 @@ export class DbStorage implements IStorage {
     return industry;
   }
 
-  async getAllIndustries(): Promise<Industry[]> {
-    return await db.select().from(schema.industries).orderBy(schema.industries.name);
+  async getAllIndustries(tenantId: string): Promise<Industry[]> {
+    return await db.select().from(schema.industries)
+      .where(eq(schema.industries.tenantId, tenantId))
+      .orderBy(schema.industries.name);
   }
 
-  async updateIndustry(id: string, industry: Partial<InsertIndustry>): Promise<Industry | undefined> {
+  async updateIndustry(id: string, tenantId: string, industry: Partial<InsertIndustry>): Promise<Industry | undefined> {
     const [updated] = await db.update(schema.industries)
       .set(industry)
-      .where(eq(schema.industries.id, id))
+      .where(and(eq(schema.industries.id, id), eq(schema.industries.tenantId, tenantId)))
       .returning();
     return updated;
   }
 
-  async deleteIndustry(id: string): Promise<boolean> {
-    const result = await db.delete(schema.industries).where(eq(schema.industries.id, id));
+  async deleteIndustry(id: string, tenantId: string): Promise<boolean> {
+    const result = await db.delete(schema.industries)
+      .where(and(eq(schema.industries.id, id), eq(schema.industries.tenantId, tenantId)));
     return (result.rowCount ?? 0) > 0;
   }
 
   // Audit Types
-  async getAuditType(id: string): Promise<AuditType | undefined> {
-    const [auditType] = await db.select().from(schema.auditTypes).where(eq(schema.auditTypes.id, id));
+  async getAuditType(id: string, tenantId: string): Promise<AuditType | undefined> {
+    const [auditType] = await db.select().from(schema.auditTypes)
+      .where(and(eq(schema.auditTypes.id, id), eq(schema.auditTypes.tenantId, tenantId)));
     return auditType;
   }
 
@@ -179,20 +203,23 @@ export class DbStorage implements IStorage {
     return auditType;
   }
 
-  async getAllAuditTypes(): Promise<AuditType[]> {
-    return await db.select().from(schema.auditTypes).orderBy(schema.auditTypes.name);
+  async getAllAuditTypes(tenantId: string): Promise<AuditType[]> {
+    return await db.select().from(schema.auditTypes)
+      .where(eq(schema.auditTypes.tenantId, tenantId))
+      .orderBy(schema.auditTypes.name);
   }
 
-  async updateAuditType(id: string, auditType: Partial<InsertAuditType>): Promise<AuditType | undefined> {
+  async updateAuditType(id: string, tenantId: string, auditType: Partial<InsertAuditType>): Promise<AuditType | undefined> {
     const [updated] = await db.update(schema.auditTypes)
       .set(auditType)
-      .where(eq(schema.auditTypes.id, id))
+      .where(and(eq(schema.auditTypes.id, id), eq(schema.auditTypes.tenantId, tenantId)))
       .returning();
     return updated;
   }
 
-  async deleteAuditType(id: string): Promise<boolean> {
-    const result = await db.delete(schema.auditTypes).where(eq(schema.auditTypes.id, id));
+  async deleteAuditType(id: string, tenantId: string): Promise<boolean> {
+    const result = await db.delete(schema.auditTypes)
+      .where(and(eq(schema.auditTypes.id, id), eq(schema.auditTypes.tenantId, tenantId)));
     return (result.rowCount ?? 0) > 0;
   }
 
