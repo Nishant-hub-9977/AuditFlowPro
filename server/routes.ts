@@ -416,6 +416,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Audit Workflow Transitions
+  app.post("/api/audits/:id/submit-for-review", async (req, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      const audit = await storage.submitAuditForReview(req.params.id, req.user.tenantId);
+      if (!audit) {
+        return res.status(404).json({ message: "Audit not found" });
+      }
+      res.json(audit);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || "Failed to submit audit for review" });
+    }
+  });
+
+  app.post("/api/audits/:id/approve", async (req, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      if (req.user.role !== 'admin') {
+        return res.status(403).json({ message: "Only admins can approve audits" });
+      }
+      const audit = await storage.approveAudit(req.params.id, req.user.tenantId);
+      if (!audit) {
+        return res.status(404).json({ message: "Audit not found" });
+      }
+      res.json(audit);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || "Failed to approve audit" });
+    }
+  });
+
+  app.post("/api/audits/:id/reject", async (req, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      if (req.user.role !== 'admin') {
+        return res.status(403).json({ message: "Only admins can reject audits" });
+      }
+      const audit = await storage.rejectAudit(req.params.id, req.user.tenantId);
+      if (!audit) {
+        return res.status(404).json({ message: "Audit not found" });
+      }
+      res.json(audit);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || "Failed to reject audit" });
+    }
+  });
+
+  app.post("/api/audits/:id/close", async (req, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      if (req.user.role !== 'admin') {
+        return res.status(403).json({ message: "Only admins can close audits" });
+      }
+      const audit = await storage.closeAudit(req.params.id, req.user.tenantId);
+      if (!audit) {
+        return res.status(404).json({ message: "Audit not found" });
+      }
+      res.json(audit);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || "Failed to close audit" });
+    }
+  });
+
   // Audit Checklist Responses
   app.get("/api/audit-checklist-responses", async (req, res) => {
     try {

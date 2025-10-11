@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, Search, Filter } from "lucide-react";
+import { Plus, Search, Filter, CheckCircle, XCircle, Archive, Send } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   Dialog,
@@ -20,24 +20,77 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import type { Audit } from "@shared/schema";
 import { format } from "date-fns";
+import { useAuth } from "@/lib/authContext";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Audits() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const { user } = useAuth();
+  const { toast } = useToast();
 
   const { data: audits = [], isLoading } = useQuery<Audit[]>({
     queryKey: ["/api/audits"],
   });
 
+  const submitForReviewMutation = useMutation({
+    mutationFn: (auditId: string) => apiRequest(`/api/audits/${auditId}/submit-for-review`, "POST"),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/audits"] });
+      toast({ title: "Success", description: "Audit submitted for review" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message || "Failed to submit audit", variant: "destructive" });
+    },
+  });
+
+  const approveMutation = useMutation({
+    mutationFn: (auditId: string) => apiRequest(`/api/audits/${auditId}/approve`, "POST"),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/audits"] });
+      toast({ title: "Success", description: "Audit approved" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message || "Failed to approve audit", variant: "destructive" });
+    },
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: (auditId: string) => apiRequest(`/api/audits/${auditId}/reject`, "POST"),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/audits"] });
+      toast({ title: "Success", description: "Audit rejected and returned to draft" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message || "Failed to reject audit", variant: "destructive" });
+    },
+  });
+
+  const closeMutation = useMutation({
+    mutationFn: (auditId: string) => apiRequest(`/api/audits/${auditId}/close`, "POST"),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/audits"] });
+      toast({ title: "Success", description: "Audit closed" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message || "Failed to close audit", variant: "destructive" });
+    },
+  });
+
   const getStatusVariant = (status: string) => {
     switch (status) {
-      case "completed":
+      case "approved":
         return "default";
-      case "in_progress":
+      case "review":
         return "secondary";
-      case "planning":
+      case "draft":
+        return "outline";
+      case "closed":
+        return "outline";
+      case "rejected":
         return "outline";
       default:
         return "outline";
@@ -47,6 +100,11 @@ export default function Audits() {
   const formatStatus = (status: string) => {
     return status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
   };
+
+  const canSubmitForReview = (audit: Audit) => audit.status === 'draft';
+  const canApprove = (audit: Audit) => user?.role === 'admin' && audit.status === 'review';
+  const canReject = (audit: Audit) => user?.role === 'admin' && audit.status === 'review';
+  const canClose = (audit: Audit) => user?.role === 'admin' && audit.status === 'approved';
 
   return (
     <div className="space-y-6">
@@ -124,7 +182,55 @@ export default function Audits() {
                     </div>
                   </div>
                   
-                  <div className="flex justify-end pt-2 border-t">
+                  <div className="flex justify-end gap-2 pt-2 border-t flex-wrap">
+                    {canSubmitForReview(audit) && (
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => submitForReviewMutation.mutate(audit.id)}
+                        disabled={submitForReviewMutation.isPending}
+                        data-testid={`button-submit-review-${audit.id}`}
+                      >
+                        <Send className="h-4 w-4 mr-1" />
+                        Submit for Review
+                      </Button>
+                    )}
+                    {canApprove(audit) && (
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => approveMutation.mutate(audit.id)}
+                        disabled={approveMutation.isPending}
+                        data-testid={`button-approve-${audit.id}`}
+                      >
+                        <CheckCircle className="h-4 w-4 mr-1" />
+                        Approve
+                      </Button>
+                    )}
+                    {canReject(audit) && (
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => rejectMutation.mutate(audit.id)}
+                        disabled={rejectMutation.isPending}
+                        data-testid={`button-reject-${audit.id}`}
+                      >
+                        <XCircle className="h-4 w-4 mr-1" />
+                        Reject
+                      </Button>
+                    )}
+                    {canClose(audit) && (
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => closeMutation.mutate(audit.id)}
+                        disabled={closeMutation.isPending}
+                        data-testid={`button-close-${audit.id}`}
+                      >
+                        <Archive className="h-4 w-4 mr-1" />
+                        Close
+                      </Button>
+                    )}
                     <Button variant="ghost" size="sm" data-testid={`button-view-${audit.id}`}>
                       View
                     </Button>
@@ -165,9 +271,59 @@ export default function Audits() {
                       </TableCell>
                       <TableCell>{audit.auditorName}</TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="sm" data-testid={`button-view-${audit.id}`}>
-                          View
-                        </Button>
+                        <div className="flex justify-end gap-2">
+                          {canSubmitForReview(audit) && (
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => submitForReviewMutation.mutate(audit.id)}
+                              disabled={submitForReviewMutation.isPending}
+                              data-testid={`button-submit-review-${audit.id}`}
+                            >
+                              <Send className="h-4 w-4 mr-1" />
+                              Submit
+                            </Button>
+                          )}
+                          {canApprove(audit) && (
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => approveMutation.mutate(audit.id)}
+                              disabled={approveMutation.isPending}
+                              data-testid={`button-approve-${audit.id}`}
+                            >
+                              <CheckCircle className="h-4 w-4 mr-1" />
+                              Approve
+                            </Button>
+                          )}
+                          {canReject(audit) && (
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => rejectMutation.mutate(audit.id)}
+                              disabled={rejectMutation.isPending}
+                              data-testid={`button-reject-${audit.id}`}
+                            >
+                              <XCircle className="h-4 w-4 mr-1" />
+                              Reject
+                            </Button>
+                          )}
+                          {canClose(audit) && (
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => closeMutation.mutate(audit.id)}
+                              disabled={closeMutation.isPending}
+                              data-testid={`button-close-${audit.id}`}
+                            >
+                              <Archive className="h-4 w-4 mr-1" />
+                              Close
+                            </Button>
+                          )}
+                          <Button variant="ghost" size="sm" data-testid={`button-view-${audit.id}`}>
+                            View
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}

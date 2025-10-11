@@ -63,6 +63,12 @@ export interface IStorage {
   getAuditsByAuditor(auditorId: string): Promise<Audit[]>;
   updateAudit(id: string, audit: Partial<InsertAudit>): Promise<Audit | undefined>;
   deleteAudit(id: string): Promise<boolean>;
+  
+  // Audit Workflow Transitions
+  submitAuditForReview(id: string, tenantId: string): Promise<Audit | undefined>;
+  approveAudit(id: string, tenantId: string): Promise<Audit | undefined>;
+  rejectAudit(id: string, tenantId: string): Promise<Audit | undefined>;
+  closeAudit(id: string, tenantId: string): Promise<Audit | undefined>;
 
   // Audit Checklist Responses
   getAuditChecklistResponse(id: string): Promise<AuditChecklistResponse | undefined>;
@@ -324,6 +330,59 @@ export class DbStorage implements IStorage {
   async deleteAudit(id: string): Promise<boolean> {
     const result = await db.delete(schema.audits).where(eq(schema.audits.id, id));
     return (result.rowCount ?? 0) > 0;
+  }
+
+  // Audit Workflow Transitions
+  async submitAuditForReview(id: string, tenantId: string): Promise<Audit | undefined> {
+    const audit = await this.getAudit(id);
+    if (!audit || audit.tenantId !== tenantId) return undefined;
+    if (audit.status !== 'draft') {
+      throw new Error('Only draft audits can be submitted for review');
+    }
+    const [updated] = await db.update(schema.audits)
+      .set({ status: 'review', updatedAt: new Date() })
+      .where(and(eq(schema.audits.id, id), eq(schema.audits.tenantId, tenantId)))
+      .returning();
+    return updated;
+  }
+
+  async approveAudit(id: string, tenantId: string): Promise<Audit | undefined> {
+    const audit = await this.getAudit(id);
+    if (!audit || audit.tenantId !== tenantId) return undefined;
+    if (audit.status !== 'review') {
+      throw new Error('Only audits in review can be approved');
+    }
+    const [updated] = await db.update(schema.audits)
+      .set({ status: 'approved', updatedAt: new Date() })
+      .where(and(eq(schema.audits.id, id), eq(schema.audits.tenantId, tenantId)))
+      .returning();
+    return updated;
+  }
+
+  async rejectAudit(id: string, tenantId: string): Promise<Audit | undefined> {
+    const audit = await this.getAudit(id);
+    if (!audit || audit.tenantId !== tenantId) return undefined;
+    if (audit.status !== 'review') {
+      throw new Error('Only audits in review can be rejected');
+    }
+    const [updated] = await db.update(schema.audits)
+      .set({ status: 'draft', updatedAt: new Date() })
+      .where(and(eq(schema.audits.id, id), eq(schema.audits.tenantId, tenantId)))
+      .returning();
+    return updated;
+  }
+
+  async closeAudit(id: string, tenantId: string): Promise<Audit | undefined> {
+    const audit = await this.getAudit(id);
+    if (!audit || audit.tenantId !== tenantId) return undefined;
+    if (audit.status !== 'approved') {
+      throw new Error('Only approved audits can be closed');
+    }
+    const [updated] = await db.update(schema.audits)
+      .set({ status: 'closed', updatedAt: new Date() })
+      .where(and(eq(schema.audits.id, id), eq(schema.audits.tenantId, tenantId)))
+      .returning();
+    return updated;
   }
 
   // Audit Checklist Responses
