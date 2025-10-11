@@ -88,7 +88,7 @@ export function CreateAuditDialog({ open, onOpenChange }: CreateAuditDialogProps
         industryId: data.industryId || null,
         auditTypeId: data.auditTypeId || null,
       };
-      return apiRequest("/api/audits", "POST", auditPayload);
+      return apiRequest("POST", "/api/audits", auditPayload);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/audits"] });

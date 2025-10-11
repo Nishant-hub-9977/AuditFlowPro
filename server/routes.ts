@@ -507,11 +507,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/audits", async (req, res) => {
     try {
-      const validated = insertAuditSchema.parse(req.body);
+      if (!req.user) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      const dataWithTenant = { 
+        ...req.body, 
+        tenantId: req.user.tenantId,
+        // Convert auditDate from ISO string to Date object
+        auditDate: req.body.auditDate ? new Date(req.body.auditDate) : undefined
+      };
+      const validated = insertAuditSchema.parse(dataWithTenant);
       const audit = await storage.createAudit(validated);
       res.status(201).json(audit);
-    } catch (error) {
-      res.status(400).json({ message: "Invalid data" });
+    } catch (error: any) {
+      console.error("Audit creation validation error:", error);
+      res.status(400).json({ message: error.message || "Invalid data" });
     }
   });
 
@@ -789,11 +799,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/leads", async (req, res) => {
     try {
-      const validated = insertLeadSchema.parse(req.body);
+      if (!req.user) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      const dataWithTenant = { ...req.body, tenantId: req.user.tenantId };
+      const validated = insertLeadSchema.parse(dataWithTenant);
       const lead = await storage.createLead(validated);
       res.status(201).json(lead);
-    } catch (error) {
-      res.status(400).json({ message: "Invalid data" });
+    } catch (error: any) {
+      console.error("Lead creation validation error:", error);
+      res.status(400).json({ message: error.message || "Invalid data" });
     }
   });
 

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus, LayoutGrid, List, CheckCircle, PlayCircle, XCircle, TrendingUp } from "lucide-react";
 import { LeadKanban } from "@/components/LeadKanban";
+import { CreateLeadDialog } from "@/components/CreateLeadDialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
@@ -20,6 +21,7 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function Leads() {
   const [view, setView] = useState<"kanban" | "table">("kanban");
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
   const { toast } = useToast();
 
   const { data: leads = [], isLoading } = useQuery<Lead[]>({
@@ -115,6 +117,10 @@ export default function Leads() {
           </p>
         </div>
         <div className="flex gap-2">
+          <Button onClick={() => setIsCreateOpen(true)} data-testid="button-add-lead">
+            <Plus className="h-4 w-4 mr-2" />
+            Add Lead
+          </Button>
           <Tabs value={view} onValueChange={(v) => setView(v as "kanban" | "table")}>
             <TabsList>
               <TabsTrigger value="kanban" data-testid="button-view-kanban">
@@ -340,6 +346,9 @@ export default function Leads() {
           )}
         </>
       )}
+
+      {/* Create Lead Dialog */}
+      <CreateLeadDialog open={isCreateOpen} onOpenChange={setIsCreateOpen} />
     </div>
   );
 }
