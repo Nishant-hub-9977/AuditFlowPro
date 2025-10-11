@@ -172,14 +172,18 @@ export default function Audits() {
 
       {/* Create Audit Dialog */}
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Create New Audit</DialogTitle>
-            <DialogDescription>
-              Fill in the audit details through the multi-step wizard
-            </DialogDescription>
-          </DialogHeader>
-          <AuditFormWizard />
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0">
+          <div className="p-6 pb-0">
+            <DialogHeader>
+              <DialogTitle>Create New Audit</DialogTitle>
+              <DialogDescription>
+                Fill in the audit details through the multi-step wizard
+              </DialogDescription>
+            </DialogHeader>
+          </div>
+          <div className="px-6 pb-6">
+            <AuditFormWizard />
+          </div>
         </DialogContent>
       </Dialog>
     </div>

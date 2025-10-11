@@ -53,34 +53,45 @@ export function AuditFormWizard() {
   return (
     <div className="space-y-6">
       {/* Progress Steps */}
-      <div className="flex items-center justify-between">
-        {steps.map((step, index) => (
-          <div key={step} className="flex items-center">
-            <div className="flex flex-col items-center">
-              <div
-                className={`flex h-10 w-10 items-center justify-center rounded-full border-2 ${
-                  index <= currentStep
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "border-muted bg-background text-muted-foreground"
-                }`}
-              >
-                {index < currentStep ? (
-                  <Check className="h-5 w-5" />
-                ) : (
-                  <span className="text-sm font-medium">{index + 1}</span>
+      <div className="overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0">
+        <div className="flex items-center justify-between min-w-max md:min-w-0">
+          {steps.map((step, index) => {
+            const isActive = index <= currentStep;
+            const isCompleted = index < currentStep;
+            
+            return (
+              <div key={step} className="flex items-center">
+                <div className="flex flex-col items-center">
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant={isActive ? "default" : "outline"}
+                    className="rounded-full"
+                    onClick={() => setCurrentStep(index)}
+                    data-testid={`button-step-${index + 1}`}
+                    aria-current={index === currentStep ? "step" : undefined}
+                    aria-label={`${step}${isCompleted ? " (completed)" : isActive ? " (current)" : ""}`}
+                  >
+                    {isCompleted ? (
+                      <Check className="h-5 w-5" />
+                    ) : (
+                      <span className="text-sm font-medium">{index + 1}</span>
+                    )}
+                  </Button>
+                  <span className="mt-2 text-xs font-medium hidden sm:block">{step}</span>
+                  <span className="mt-2 text-xs font-medium sm:hidden">{step.split(' ')[0]}</span>
+                </div>
+                {index < steps.length - 1 && (
+                  <div
+                    className={`mx-3 md:mx-4 h-0.5 w-12 md:w-16 ${
+                      index < currentStep ? "bg-primary" : "bg-muted"
+                    }`}
+                  />
                 )}
               </div>
-              <span className="mt-2 text-xs font-medium">{step}</span>
-            </div>
-            {index < steps.length - 1 && (
-              <div
-                className={`mx-4 h-0.5 w-16 ${
-                  index < currentStep ? "bg-primary" : "bg-muted"
-                }`}
-              />
-            )}
-          </div>
-        ))}
+            );
+          })}
+        </div>
       </div>
 
       {/* Form Content */}
@@ -294,7 +305,7 @@ export function AuditFormWizard() {
           )}
 
           {/* Navigation Buttons */}
-          <div className="flex justify-between mt-6">
+          <div className="flex justify-between gap-3 mt-6">
             <Button
               variant="outline"
               onClick={handlePrev}
