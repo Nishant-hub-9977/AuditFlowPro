@@ -13,31 +13,43 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-
-//todo: remove mock functionality
-const mockLeads = [
-  {
-    id: "LEAD-001",
-    company: "TechCorp Industries",
-    contact: "John Doe",
-    status: "Open",
-    priority: "High",
-    value: "$45,000",
-    source: "Audit",
-  },
-  {
-    id: "LEAD-002",
-    company: "Global Pharma",
-    contact: "Jane Smith",
-    status: "In Progress",
-    priority: "Medium",
-    value: "$32,000",
-    source: "Direct",
-  },
-];
+import { useQuery } from "@tanstack/react-query";
+import type { Lead } from "@shared/schema";
 
 export default function Leads() {
   const [view, setView] = useState<"kanban" | "table">("kanban");
+
+  const { data: leads = [], isLoading } = useQuery<Lead[]>({
+    queryKey: ["/api/leads"],
+  });
+
+  const getPriorityVariant = (priority: string) => {
+    switch (priority) {
+      case "urgent":
+        return "destructive";
+      case "high":
+        return "default";
+      case "medium":
+        return "secondary";
+      case "low":
+        return "outline";
+      default:
+        return "outline";
+    }
+  };
+
+  const formatStatus = (status: string) => {
+    return status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+  };
+
+  const formatPriority = (priority: string) => {
+    return priority.charAt(0).toUpperCase() + priority.slice(1);
+  };
+
+  const formatCurrency = (value: number | null) => {
+    if (value === null) return "N/A";
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
+  };
 
   return (
     <div className="space-y-6">
@@ -74,85 +86,108 @@ export default function Leads() {
         <LeadKanban />
       ) : (
         <>
-          {/* Mobile Card View */}
-          <div className="md:hidden space-y-3">
-            {mockLeads.map((lead) => (
-              <Card key={lead.id} data-testid={`card-lead-${lead.id}`} className="hover-elevate">
-                <CardContent className="p-4 space-y-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <p className="font-mono text-sm font-medium" data-testid={`text-lead-id-${lead.id}`}>{lead.id}</p>
-                      <p className="text-lg font-semibold mt-1" data-testid={`text-company-${lead.id}`}>{lead.company}</p>
-                      <p className="text-sm text-muted-foreground mt-0.5" data-testid={`text-contact-${lead.id}`}>{lead.contact}</p>
-                    </div>
-                    <div className="flex flex-col gap-2 items-end">
-                      <Badge variant="outline" data-testid={`badge-status-${lead.id}`}>{lead.status}</Badge>
-                      <Badge variant="secondary" data-testid={`badge-priority-${lead.id}`}>{lead.priority}</Badge>
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div>
-                      <p className="text-muted-foreground">Value</p>
-                      <p className="font-semibold mt-0.5" data-testid={`text-value-${lead.id}`}>{lead.value}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Source</p>
-                      <p className="font-medium mt-0.5" data-testid={`text-source-${lead.id}`}>{lead.source}</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex justify-end pt-2 border-t">
-                    <Button variant="ghost" size="sm" data-testid={`button-view-${lead.id}`}>
-                      View
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          {/* Desktop Table View */}
-          <div className="hidden md:block overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
-            <div className="rounded-lg border min-w-[800px]">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Lead ID</TableHead>
-                    <TableHead>Company</TableHead>
-                    <TableHead>Contact</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Priority</TableHead>
-                    <TableHead>Value</TableHead>
-                    <TableHead>Source</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {mockLeads.map((lead) => (
-                    <TableRow key={lead.id} data-testid={`row-lead-${lead.id}`}>
-                      <TableCell className="font-mono text-sm">{lead.id}</TableCell>
-                      <TableCell>{lead.company}</TableCell>
-                      <TableCell>{lead.contact}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{lead.status}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">{lead.priority}</Badge>
-                      </TableCell>
-                      <TableCell className="font-semibold">{lead.value}</TableCell>
-                      <TableCell>{lead.source}</TableCell>
-                      <TableCell className="text-right">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <p className="text-muted-foreground">Loading leads...</p>
+            </div>
+          ) : leads.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <p className="text-muted-foreground">No leads found</p>
+              <p className="text-sm text-muted-foreground mt-1">Create your first lead to get started</p>
+            </div>
+          ) : (
+            <>
+              {/* Mobile Card View */}
+              <div className="md:hidden space-y-3">
+                {leads.map((lead) => (
+                  <Card key={lead.id} data-testid={`card-lead-${lead.id}`} className="hover-elevate">
+                    <CardContent className="p-4 space-y-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-mono text-sm font-medium" data-testid={`text-lead-id-${lead.id}`}>{lead.leadNumber}</p>
+                          <p className="text-lg font-semibold mt-1" data-testid={`text-company-${lead.id}`}>{lead.companyName}</p>
+                          <p className="text-sm text-muted-foreground mt-0.5" data-testid={`text-contact-${lead.id}`}>{lead.contactPerson}</p>
+                        </div>
+                        <div className="flex flex-col gap-2 items-end">
+                          <Badge variant="outline" data-testid={`badge-status-${lead.id}`}>
+                            {formatStatus(lead.status)}
+                          </Badge>
+                          <Badge variant={getPriorityVariant(lead.priority)} data-testid={`badge-priority-${lead.id}`}>
+                            {formatPriority(lead.priority)}
+                          </Badge>
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div>
+                          <p className="text-muted-foreground">Value</p>
+                          <p className="font-semibold mt-0.5" data-testid={`text-value-${lead.id}`}>
+                            {formatCurrency(lead.estimatedValue)}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Email</p>
+                          <p className="font-medium mt-0.5 truncate" data-testid={`text-email-${lead.id}`}>{lead.email}</p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex justify-end pt-2 border-t">
                         <Button variant="ghost" size="sm" data-testid={`button-view-${lead.id}`}>
                           View
                         </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              {/* Desktop Table View */}
+              <div className="hidden md:block overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+                <div className="rounded-lg border min-w-[800px]">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Lead ID</TableHead>
+                        <TableHead>Company</TableHead>
+                        <TableHead>Contact</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Priority</TableHead>
+                        <TableHead>Value</TableHead>
+                        <TableHead>Phone</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {leads.map((lead) => (
+                        <TableRow key={lead.id} data-testid={`row-lead-${lead.id}`}>
+                          <TableCell className="font-mono text-sm">{lead.leadNumber}</TableCell>
+                          <TableCell>{lead.companyName}</TableCell>
+                          <TableCell>{lead.contactPerson}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{formatStatus(lead.status)}</Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={getPriorityVariant(lead.priority)}>
+                              {formatPriority(lead.priority)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="font-semibold">
+                            {formatCurrency(lead.estimatedValue)}
+                          </TableCell>
+                          <TableCell>{lead.phone}</TableCell>
+                          <TableCell className="text-right">
+                            <Button variant="ghost" size="sm" data-testid={`button-view-${lead.id}`}>
+                              View
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            </>
+          )}
         </>
       )}
     </div>

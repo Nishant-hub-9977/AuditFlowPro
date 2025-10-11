@@ -11,6 +11,9 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { useQuery } from "@tanstack/react-query";
+import type { Industry, AuditType, User } from "@shared/schema";
+import { format } from "date-fns";
 
 //todo: remove mock functionality
 const users = [
@@ -25,13 +28,15 @@ const customers = [
   { id: 3, name: "BioMed Systems", industry: "Pharma", audits: 15, status: "Active" },
 ];
 
-const industryTypes = [
-  { id: 1, name: "Pharmaceutical", code: "PHARMA", audits: 45 },
-  { id: 2, name: "Chemical", code: "CHEM", audits: 32 },
-  { id: 3, name: "Manufacturing", code: "MFG", audits: 28 },
-];
-
 export default function MasterData() {
+  const { data: industries = [], isLoading: industriesLoading } = useQuery<Industry[]>({
+    queryKey: ["/api/industries"],
+  });
+
+  const { data: auditTypes = [], isLoading: auditTypesLoading } = useQuery<AuditType[]>({
+    queryKey: ["/api/audit-types"],
+  });
+
   return (
     <div className="space-y-6">
       <div>
@@ -198,61 +203,79 @@ export default function MasterData() {
             </Button>
           </div>
 
-          {/* Mobile Card View */}
-          <div className="md:hidden space-y-3">
-            {industryTypes.map((industry) => (
-              <Card key={industry.id} data-testid={`card-industry-${industry.id}`} className="hover-elevate">
-                <CardContent className="p-4 space-y-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-lg font-semibold" data-testid={`text-name-${industry.id}`}>{industry.name}</p>
-                      <p className="text-sm text-muted-foreground font-mono mt-0.5" data-testid={`text-code-${industry.id}`}>{industry.code}</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center justify-between pt-2 border-t">
-                    <div>
-                      <p className="text-muted-foreground text-sm">Total Audits</p>
-                      <p className="font-semibold" data-testid={`text-audits-${industry.id}`}>{industry.audits}</p>
-                    </div>
-                    <Button variant="ghost" size="sm" data-testid={`button-edit-industry-${industry.id}`}>
-                      Edit
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          {/* Desktop Table View */}
-          <div className="hidden md:block overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
-            <div className="rounded-lg border min-w-[600px]">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Industry Name</TableHead>
-                    <TableHead>Code</TableHead>
-                    <TableHead>Total Audits</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {industryTypes.map((industry) => (
-                    <TableRow key={industry.id} data-testid={`row-industry-${industry.id}`}>
-                      <TableCell>{industry.name}</TableCell>
-                      <TableCell className="font-mono">{industry.code}</TableCell>
-                      <TableCell>{industry.audits}</TableCell>
-                      <TableCell className="text-right">
+          {industriesLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <p className="text-muted-foreground">Loading industries...</p>
+            </div>
+          ) : industries.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <p className="text-muted-foreground">No industries found</p>
+              <p className="text-sm text-muted-foreground mt-1">Add your first industry to get started</p>
+            </div>
+          ) : (
+            <>
+              {/* Mobile Card View */}
+              <div className="md:hidden space-y-3">
+                {industries.map((industry) => (
+                  <Card key={industry.id} data-testid={`card-industry-${industry.id}`} className="hover-elevate">
+                    <CardContent className="p-4 space-y-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-lg font-semibold" data-testid={`text-name-${industry.id}`}>{industry.name}</p>
+                          {industry.description && (
+                            <p className="text-sm text-muted-foreground mt-0.5" data-testid={`text-description-${industry.id}`}>
+                              {industry.description}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center justify-between pt-2 border-t">
+                        <p className="text-sm text-muted-foreground">
+                          Added {format(new Date(industry.createdAt), "MMM dd, yyyy")}
+                        </p>
                         <Button variant="ghost" size="sm" data-testid={`button-edit-industry-${industry.id}`}>
                           Edit
                         </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              {/* Desktop Table View */}
+              <div className="hidden md:block overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+                <div className="rounded-lg border min-w-[700px]">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead>Created</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {industries.map((industry) => (
+                        <TableRow key={industry.id} data-testid={`row-industry-${industry.id}`}>
+                          <TableCell className="font-medium">{industry.name}</TableCell>
+                          <TableCell className="text-muted-foreground">{industry.description || "—"}</TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {format(new Date(industry.createdAt), "MMM dd, yyyy")}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button variant="ghost" size="sm" data-testid={`button-edit-industry-${industry.id}`}>
+                              Edit
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            </>
+          )}
         </TabsContent>
 
         <TabsContent value="audit-types" className="space-y-4">
@@ -262,9 +285,80 @@ export default function MasterData() {
               Add Audit Type
             </Button>
           </div>
-          <div className="rounded-lg border p-8 text-center text-muted-foreground">
-            Audit type configuration coming soon
-          </div>
+
+          {auditTypesLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <p className="text-muted-foreground">Loading audit types...</p>
+            </div>
+          ) : auditTypes.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <p className="text-muted-foreground">No audit types found</p>
+              <p className="text-sm text-muted-foreground mt-1">Add your first audit type to get started</p>
+            </div>
+          ) : (
+            <>
+              {/* Mobile Card View */}
+              <div className="md:hidden space-y-3">
+                {auditTypes.map((auditType) => (
+                  <Card key={auditType.id} data-testid={`card-audit-type-${auditType.id}`} className="hover-elevate">
+                    <CardContent className="p-4 space-y-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-lg font-semibold" data-testid={`text-name-${auditType.id}`}>{auditType.name}</p>
+                          {auditType.description && (
+                            <p className="text-sm text-muted-foreground mt-0.5" data-testid={`text-description-${auditType.id}`}>
+                              {auditType.description}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center justify-between pt-2 border-t">
+                        <p className="text-sm text-muted-foreground">
+                          Added {format(new Date(auditType.createdAt), "MMM dd, yyyy")}
+                        </p>
+                        <Button variant="ghost" size="sm" data-testid={`button-edit-audit-type-${auditType.id}`}>
+                          Edit
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              {/* Desktop Table View */}
+              <div className="hidden md:block overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+                <div className="rounded-lg border min-w-[700px]">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead>Created</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {auditTypes.map((auditType) => (
+                        <TableRow key={auditType.id} data-testid={`row-audit-type-${auditType.id}`}>
+                          <TableCell className="font-medium">{auditType.name}</TableCell>
+                          <TableCell className="text-muted-foreground">{auditType.description || "—"}</TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {format(new Date(auditType.createdAt), "MMM dd, yyyy")}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button variant="ghost" size="sm" data-testid={`button-edit-audit-type-${auditType.id}`}>
+                              Edit
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            </>
+          )}
         </TabsContent>
       </Tabs>
     </div>
