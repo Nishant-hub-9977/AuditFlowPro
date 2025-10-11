@@ -1,38 +1,512 @@
-import { type User, type InsertUser } from "@shared/schema";
-import { randomUUID } from "crypto";
-
-// modify the interface with any CRUD methods
-// you might need
+import { db } from "./db";
+import { eq, desc, and, like, sql } from "drizzle-orm";
+import * as schema from "@shared/schema";
+import type {
+  User, InsertUser,
+  Industry, InsertIndustry,
+  AuditType, InsertAuditType,
+  Checklist, InsertChecklist,
+  ChecklistItem, InsertChecklistItem,
+  Audit, InsertAudit,
+  AuditChecklistResponse, InsertAuditChecklistResponse,
+  Observation, InsertObservation,
+  BusinessIntelligence, InsertBusinessIntelligence,
+  Lead, InsertLead,
+  File, InsertFile,
+  FollowUpAction, InsertFollowUpAction,
+} from "@shared/schema";
 
 export interface IStorage {
+  // Users
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  getAllUsers(): Promise<User[]>;
+
+  // Industries
+  getIndustry(id: string): Promise<Industry | undefined>;
+  createIndustry(industry: InsertIndustry): Promise<Industry>;
+  getAllIndustries(): Promise<Industry[]>;
+  updateIndustry(id: string, industry: Partial<InsertIndustry>): Promise<Industry | undefined>;
+  deleteIndustry(id: string): Promise<boolean>;
+
+  // Audit Types
+  getAuditType(id: string): Promise<AuditType | undefined>;
+  createAuditType(auditType: InsertAuditType): Promise<AuditType>;
+  getAllAuditTypes(): Promise<AuditType[]>;
+  updateAuditType(id: string, auditType: Partial<InsertAuditType>): Promise<AuditType | undefined>;
+  deleteAuditType(id: string): Promise<boolean>;
+
+  // Checklists
+  getChecklist(id: string): Promise<Checklist | undefined>;
+  createChecklist(checklist: InsertChecklist): Promise<Checklist>;
+  getAllChecklists(): Promise<Checklist[]>;
+  getChecklistsByAuditType(auditTypeId: string): Promise<Checklist[]>;
+  updateChecklist(id: string, checklist: Partial<InsertChecklist>): Promise<Checklist | undefined>;
+  deleteChecklist(id: string): Promise<boolean>;
+
+  // Checklist Items
+  getChecklistItem(id: string): Promise<ChecklistItem | undefined>;
+  createChecklistItem(item: InsertChecklistItem): Promise<ChecklistItem>;
+  getChecklistItemsByChecklist(checklistId: string): Promise<ChecklistItem[]>;
+  updateChecklistItem(id: string, item: Partial<InsertChecklistItem>): Promise<ChecklistItem | undefined>;
+  deleteChecklistItem(id: string): Promise<boolean>;
+
+  // Audits
+  getAudit(id: string): Promise<Audit | undefined>;
+  createAudit(audit: InsertAudit): Promise<Audit>;
+  getAllAudits(): Promise<Audit[]>;
+  getAuditsByStatus(status: string): Promise<Audit[]>;
+  getAuditsByAuditor(auditorId: string): Promise<Audit[]>;
+  updateAudit(id: string, audit: Partial<InsertAudit>): Promise<Audit | undefined>;
+  deleteAudit(id: string): Promise<boolean>;
+
+  // Audit Checklist Responses
+  getAuditChecklistResponse(id: string): Promise<AuditChecklistResponse | undefined>;
+  createAuditChecklistResponse(response: InsertAuditChecklistResponse): Promise<AuditChecklistResponse>;
+  getResponsesByAudit(auditId: string): Promise<AuditChecklistResponse[]>;
+  updateAuditChecklistResponse(id: string, response: Partial<InsertAuditChecklistResponse>): Promise<AuditChecklistResponse | undefined>;
+  deleteAuditChecklistResponse(id: string): Promise<boolean>;
+
+  // Observations
+  getObservation(id: string): Promise<Observation | undefined>;
+  createObservation(observation: InsertObservation): Promise<Observation>;
+  getObservationsByAudit(auditId: string): Promise<Observation[]>;
+  updateObservation(id: string, observation: Partial<InsertObservation>): Promise<Observation | undefined>;
+  deleteObservation(id: string): Promise<boolean>;
+
+  // Business Intelligence
+  getBusinessIntelligence(id: string): Promise<BusinessIntelligence | undefined>;
+  createBusinessIntelligence(bi: InsertBusinessIntelligence): Promise<BusinessIntelligence>;
+  getBusinessIntelligenceByAudit(auditId: string): Promise<BusinessIntelligence | undefined>;
+  updateBusinessIntelligence(id: string, bi: Partial<InsertBusinessIntelligence>): Promise<BusinessIntelligence | undefined>;
+  deleteBusinessIntelligence(id: string): Promise<boolean>;
+
+  // Leads
+  getLead(id: string): Promise<Lead | undefined>;
+  createLead(lead: InsertLead): Promise<Lead>;
+  getAllLeads(): Promise<Lead[]>;
+  getLeadsByStatus(status: string): Promise<Lead[]>;
+  getLeadsByAssignedUser(userId: string): Promise<Lead[]>;
+  updateLead(id: string, lead: Partial<InsertLead>): Promise<Lead | undefined>;
+  deleteLead(id: string): Promise<boolean>;
+
+  // Files
+  getFile(id: string): Promise<File | undefined>;
+  createFile(file: InsertFile): Promise<File>;
+  getFilesByEntity(entityType: string, entityId: string): Promise<File[]>;
+  deleteFile(id: string): Promise<boolean>;
+
+  // Follow-up Actions
+  getFollowUpAction(id: string): Promise<FollowUpAction | undefined>;
+  createFollowUpAction(action: InsertFollowUpAction): Promise<FollowUpAction>;
+  getFollowUpActionsByAudit(auditId: string): Promise<FollowUpAction[]>;
+  updateFollowUpAction(id: string, action: Partial<InsertFollowUpAction>): Promise<FollowUpAction | undefined>;
+  deleteFollowUpAction(id: string): Promise<boolean>;
+
+  // Dashboard stats
+  getDashboardStats(): Promise<{
+    totalAudits: number;
+    pendingAudits: number;
+    completedAudits: number;
+    totalLeads: number;
+  }>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<string, User>;
-
-  constructor() {
-    this.users = new Map();
-  }
-
+export class DbStorage implements IStorage {
+  // Users
   async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
+    const [user] = await db.select().from(schema.users).where(eq(schema.users.id, id));
+    return user;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+    const [user] = await db.select().from(schema.users).where(eq(schema.users.username, username));
+    return user;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(schema.users).where(eq(schema.users.email, email));
+    return user;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = randomUUID();
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
+    const [user] = await db.insert(schema.users).values(insertUser).returning();
     return user;
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    return await db.select().from(schema.users).orderBy(desc(schema.users.createdAt));
+  }
+
+  // Industries
+  async getIndustry(id: string): Promise<Industry | undefined> {
+    const [industry] = await db.select().from(schema.industries).where(eq(schema.industries.id, id));
+    return industry;
+  }
+
+  async createIndustry(insertIndustry: InsertIndustry): Promise<Industry> {
+    const [industry] = await db.insert(schema.industries).values(insertIndustry).returning();
+    return industry;
+  }
+
+  async getAllIndustries(): Promise<Industry[]> {
+    return await db.select().from(schema.industries).orderBy(schema.industries.name);
+  }
+
+  async updateIndustry(id: string, industry: Partial<InsertIndustry>): Promise<Industry | undefined> {
+    const [updated] = await db.update(schema.industries)
+      .set(industry)
+      .where(eq(schema.industries.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteIndustry(id: string): Promise<boolean> {
+    const result = await db.delete(schema.industries).where(eq(schema.industries.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  // Audit Types
+  async getAuditType(id: string): Promise<AuditType | undefined> {
+    const [auditType] = await db.select().from(schema.auditTypes).where(eq(schema.auditTypes.id, id));
+    return auditType;
+  }
+
+  async createAuditType(insertAuditType: InsertAuditType): Promise<AuditType> {
+    const [auditType] = await db.insert(schema.auditTypes).values(insertAuditType).returning();
+    return auditType;
+  }
+
+  async getAllAuditTypes(): Promise<AuditType[]> {
+    return await db.select().from(schema.auditTypes).orderBy(schema.auditTypes.name);
+  }
+
+  async updateAuditType(id: string, auditType: Partial<InsertAuditType>): Promise<AuditType | undefined> {
+    const [updated] = await db.update(schema.auditTypes)
+      .set(auditType)
+      .where(eq(schema.auditTypes.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteAuditType(id: string): Promise<boolean> {
+    const result = await db.delete(schema.auditTypes).where(eq(schema.auditTypes.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  // Checklists
+  async getChecklist(id: string): Promise<Checklist | undefined> {
+    const [checklist] = await db.select().from(schema.checklists).where(eq(schema.checklists.id, id));
+    return checklist;
+  }
+
+  async createChecklist(insertChecklist: InsertChecklist): Promise<Checklist> {
+    const [checklist] = await db.insert(schema.checklists).values(insertChecklist).returning();
+    return checklist;
+  }
+
+  async getAllChecklists(): Promise<Checklist[]> {
+    return await db.select().from(schema.checklists).orderBy(desc(schema.checklists.createdAt));
+  }
+
+  async getChecklistsByAuditType(auditTypeId: string): Promise<Checklist[]> {
+    return await db.select().from(schema.checklists)
+      .where(eq(schema.checklists.auditTypeId, auditTypeId));
+  }
+
+  async updateChecklist(id: string, checklist: Partial<InsertChecklist>): Promise<Checklist | undefined> {
+    const [updated] = await db.update(schema.checklists)
+      .set(checklist)
+      .where(eq(schema.checklists.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteChecklist(id: string): Promise<boolean> {
+    const result = await db.delete(schema.checklists).where(eq(schema.checklists.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  // Checklist Items
+  async getChecklistItem(id: string): Promise<ChecklistItem | undefined> {
+    const [item] = await db.select().from(schema.checklistItems).where(eq(schema.checklistItems.id, id));
+    return item;
+  }
+
+  async createChecklistItem(insertItem: InsertChecklistItem): Promise<ChecklistItem> {
+    const [item] = await db.insert(schema.checklistItems).values(insertItem).returning();
+    return item;
+  }
+
+  async getChecklistItemsByChecklist(checklistId: string): Promise<ChecklistItem[]> {
+    return await db.select().from(schema.checklistItems)
+      .where(eq(schema.checklistItems.checklistId, checklistId))
+      .orderBy(schema.checklistItems.orderIndex);
+  }
+
+  async updateChecklistItem(id: string, item: Partial<InsertChecklistItem>): Promise<ChecklistItem | undefined> {
+    const [updated] = await db.update(schema.checklistItems)
+      .set(item)
+      .where(eq(schema.checklistItems.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteChecklistItem(id: string): Promise<boolean> {
+    const result = await db.delete(schema.checklistItems).where(eq(schema.checklistItems.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  // Audits
+  async getAudit(id: string): Promise<Audit | undefined> {
+    const [audit] = await db.select().from(schema.audits).where(eq(schema.audits.id, id));
+    return audit;
+  }
+
+  async createAudit(insertAudit: InsertAudit): Promise<Audit> {
+    const [audit] = await db.insert(schema.audits).values(insertAudit).returning();
+    return audit;
+  }
+
+  async getAllAudits(): Promise<Audit[]> {
+    return await db.select().from(schema.audits).orderBy(desc(schema.audits.auditDate));
+  }
+
+  async getAuditsByStatus(status: string): Promise<Audit[]> {
+    return await db.select().from(schema.audits)
+      .where(eq(schema.audits.status, status))
+      .orderBy(desc(schema.audits.auditDate));
+  }
+
+  async getAuditsByAuditor(auditorId: string): Promise<Audit[]> {
+    return await db.select().from(schema.audits)
+      .where(eq(schema.audits.auditorId, auditorId))
+      .orderBy(desc(schema.audits.auditDate));
+  }
+
+  async updateAudit(id: string, audit: Partial<InsertAudit>): Promise<Audit | undefined> {
+    const [updated] = await db.update(schema.audits)
+      .set({ ...audit, updatedAt: new Date() })
+      .where(eq(schema.audits.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteAudit(id: string): Promise<boolean> {
+    const result = await db.delete(schema.audits).where(eq(schema.audits.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  // Audit Checklist Responses
+  async getAuditChecklistResponse(id: string): Promise<AuditChecklistResponse | undefined> {
+    const [response] = await db.select().from(schema.auditChecklistResponses)
+      .where(eq(schema.auditChecklistResponses.id, id));
+    return response;
+  }
+
+  async createAuditChecklistResponse(insertResponse: InsertAuditChecklistResponse): Promise<AuditChecklistResponse> {
+    const [response] = await db.insert(schema.auditChecklistResponses).values(insertResponse).returning();
+    return response;
+  }
+
+  async getResponsesByAudit(auditId: string): Promise<AuditChecklistResponse[]> {
+    return await db.select().from(schema.auditChecklistResponses)
+      .where(eq(schema.auditChecklistResponses.auditId, auditId));
+  }
+
+  async updateAuditChecklistResponse(id: string, response: Partial<InsertAuditChecklistResponse>): Promise<AuditChecklistResponse | undefined> {
+    const [updated] = await db.update(schema.auditChecklistResponses)
+      .set(response)
+      .where(eq(schema.auditChecklistResponses.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteAuditChecklistResponse(id: string): Promise<boolean> {
+    const result = await db.delete(schema.auditChecklistResponses).where(eq(schema.auditChecklistResponses.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  // Observations
+  async getObservation(id: string): Promise<Observation | undefined> {
+    const [observation] = await db.select().from(schema.observations).where(eq(schema.observations.id, id));
+    return observation;
+  }
+
+  async createObservation(insertObservation: InsertObservation): Promise<Observation> {
+    const [observation] = await db.insert(schema.observations).values(insertObservation).returning();
+    return observation;
+  }
+
+  async getObservationsByAudit(auditId: string): Promise<Observation[]> {
+    return await db.select().from(schema.observations)
+      .where(eq(schema.observations.auditId, auditId))
+      .orderBy(desc(schema.observations.createdAt));
+  }
+
+  async updateObservation(id: string, observation: Partial<InsertObservation>): Promise<Observation | undefined> {
+    const [updated] = await db.update(schema.observations)
+      .set(observation)
+      .where(eq(schema.observations.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteObservation(id: string): Promise<boolean> {
+    const result = await db.delete(schema.observations).where(eq(schema.observations.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  // Business Intelligence
+  async getBusinessIntelligence(id: string): Promise<BusinessIntelligence | undefined> {
+    const [bi] = await db.select().from(schema.businessIntelligence).where(eq(schema.businessIntelligence.id, id));
+    return bi;
+  }
+
+  async createBusinessIntelligence(insertBi: InsertBusinessIntelligence): Promise<BusinessIntelligence> {
+    const [bi] = await db.insert(schema.businessIntelligence).values(insertBi).returning();
+    return bi;
+  }
+
+  async getBusinessIntelligenceByAudit(auditId: string): Promise<BusinessIntelligence | undefined> {
+    const [bi] = await db.select().from(schema.businessIntelligence)
+      .where(eq(schema.businessIntelligence.auditId, auditId));
+    return bi;
+  }
+
+  async updateBusinessIntelligence(id: string, bi: Partial<InsertBusinessIntelligence>): Promise<BusinessIntelligence | undefined> {
+    const [updated] = await db.update(schema.businessIntelligence)
+      .set(bi)
+      .where(eq(schema.businessIntelligence.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteBusinessIntelligence(id: string): Promise<boolean> {
+    const result = await db.delete(schema.businessIntelligence).where(eq(schema.businessIntelligence.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  // Leads
+  async getLead(id: string): Promise<Lead | undefined> {
+    const [lead] = await db.select().from(schema.leads).where(eq(schema.leads.id, id));
+    return lead;
+  }
+
+  async createLead(insertLead: InsertLead): Promise<Lead> {
+    const [lead] = await db.insert(schema.leads).values(insertLead).returning();
+    return lead;
+  }
+
+  async getAllLeads(): Promise<Lead[]> {
+    return await db.select().from(schema.leads).orderBy(desc(schema.leads.createdAt));
+  }
+
+  async getLeadsByStatus(status: string): Promise<Lead[]> {
+    return await db.select().from(schema.leads)
+      .where(eq(schema.leads.status, status))
+      .orderBy(desc(schema.leads.createdAt));
+  }
+
+  async getLeadsByAssignedUser(userId: string): Promise<Lead[]> {
+    return await db.select().from(schema.leads)
+      .where(eq(schema.leads.assignedTo, userId))
+      .orderBy(desc(schema.leads.createdAt));
+  }
+
+  async updateLead(id: string, lead: Partial<InsertLead>): Promise<Lead | undefined> {
+    const [updated] = await db.update(schema.leads)
+      .set({ ...lead, updatedAt: new Date() })
+      .where(eq(schema.leads.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteLead(id: string): Promise<boolean> {
+    const result = await db.delete(schema.leads).where(eq(schema.leads.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  // Files
+  async getFile(id: string): Promise<File | undefined> {
+    const [file] = await db.select().from(schema.files).where(eq(schema.files.id, id));
+    return file;
+  }
+
+  async createFile(insertFile: InsertFile): Promise<File> {
+    const [file] = await db.insert(schema.files).values(insertFile).returning();
+    return file;
+  }
+
+  async getFilesByEntity(entityType: string, entityId: string): Promise<File[]> {
+    return await db.select().from(schema.files)
+      .where(and(
+        eq(schema.files.entityType, entityType),
+        eq(schema.files.entityId, entityId)
+      ))
+      .orderBy(desc(schema.files.createdAt));
+  }
+
+  async deleteFile(id: string): Promise<boolean> {
+    const result = await db.delete(schema.files).where(eq(schema.files.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  // Follow-up Actions
+  async getFollowUpAction(id: string): Promise<FollowUpAction | undefined> {
+    const [action] = await db.select().from(schema.followUpActions).where(eq(schema.followUpActions.id, id));
+    return action;
+  }
+
+  async createFollowUpAction(insertAction: InsertFollowUpAction): Promise<FollowUpAction> {
+    const [action] = await db.insert(schema.followUpActions).values(insertAction).returning();
+    return action;
+  }
+
+  async getFollowUpActionsByAudit(auditId: string): Promise<FollowUpAction[]> {
+    return await db.select().from(schema.followUpActions)
+      .where(eq(schema.followUpActions.auditId, auditId))
+      .orderBy(schema.followUpActions.dueDate);
+  }
+
+  async updateFollowUpAction(id: string, action: Partial<InsertFollowUpAction>): Promise<FollowUpAction | undefined> {
+    const [updated] = await db.update(schema.followUpActions)
+      .set(action)
+      .where(eq(schema.followUpActions.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteFollowUpAction(id: string): Promise<boolean> {
+    const result = await db.delete(schema.followUpActions).where(eq(schema.followUpActions.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  // Dashboard stats
+  async getDashboardStats(): Promise<{
+    totalAudits: number;
+    pendingAudits: number;
+    completedAudits: number;
+    totalLeads: number;
+  }> {
+    const [totalAuditsResult] = await db.select({ count: sql<number>`count(*)` }).from(schema.audits);
+    const [pendingAuditsResult] = await db.select({ count: sql<number>`count(*)` })
+      .from(schema.audits)
+      .where(eq(schema.audits.status, 'planning'));
+    const [completedAuditsResult] = await db.select({ count: sql<number>`count(*)` })
+      .from(schema.audits)
+      .where(eq(schema.audits.status, 'completed'));
+    const [totalLeadsResult] = await db.select({ count: sql<number>`count(*)` }).from(schema.leads);
+
+    return {
+      totalAudits: Number(totalAuditsResult.count),
+      pendingAudits: Number(pendingAuditsResult.count),
+      completedAudits: Number(completedAuditsResult.count),
+      totalLeads: Number(totalLeadsResult.count),
+    };
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DbStorage();
