@@ -23,62 +23,63 @@ import {
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/lib/authContext";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import type { UserRole } from "@shared/schema";
 
-const enterpriseItems = [
+interface NavItem {
+  title: string;
+  url: string;
+  icon: any;
+  allowedRoles: UserRole[];
+}
+
+const navItems: NavItem[] = [
   {
     title: "Dashboard",
     url: "/",
     icon: LayoutDashboard,
+    allowedRoles: ["master_admin", "admin", "client", "auditor"],
   },
   {
     title: "Audits",
     url: "/audits",
     icon: ClipboardCheck,
+    allowedRoles: ["master_admin", "admin", "client", "auditor"],
   },
   {
     title: "Leads",
     url: "/leads",
     icon: Users,
+    allowedRoles: ["master_admin", "admin", "client"],
   },
   {
     title: "Reports",
     url: "/reports",
     icon: BarChart3,
+    allowedRoles: ["master_admin", "admin"],
   },
   {
     title: "Master Data",
     url: "/master-data",
     icon: FolderOpen,
+    allowedRoles: ["master_admin", "admin"],
   },
   {
     title: "Settings",
     url: "/settings",
     icon: Settings,
+    allowedRoles: ["master_admin", "admin"],
   },
 ];
 
-const partnerItems = [
-  {
-    title: "Dashboard",
-    url: "/partner/dashboard",
-    icon: LayoutDashboard,
-  },
-  {
-    title: "My Audits",
-    url: "/partner/audits",
-    icon: ClipboardCheck,
-  },
-  {
-    title: "My Leads",
-    url: "/partner/leads",
-    icon: Users,
-  },
-];
-
-export function AppSidebar({ userRole = "enterprise" }: { userRole?: "enterprise" | "partner" }) {
+export function AppSidebar() {
   const [location, setLocation] = useLocation();
   const { logout, user } = useAuth();
-  const items = userRole === "partner" ? partnerItems : enterpriseItems;
+  
+  // Filter nav items based on user role
+  const visibleItems = navItems.filter(item => 
+    user && item.allowedRoles.includes(user.role as UserRole)
+  );
 
   const handleLogout = async () => {
     try {
@@ -109,7 +110,7 @@ export function AppSidebar({ userRole = "enterprise" }: { userRole?: "enterprise
           <SidebarGroupLabel>Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {items.map((item) => (
+              {visibleItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
@@ -133,6 +134,12 @@ export function AppSidebar({ userRole = "enterprise" }: { userRole?: "enterprise
             <div className="px-2 py-1">
               <p className="text-sm font-medium">{user.fullName}</p>
               <p className="text-xs text-muted-foreground">{user.email}</p>
+              <Badge variant="outline" className="mt-1" data-testid="badge-user-role">
+                {user.role === 'master_admin' ? 'Master Admin' : 
+                 user.role === 'admin' ? 'Admin' :
+                 user.role === 'client' ? 'Client' :
+                 'Auditor'}
+              </Badge>
             </div>
           )}
           <Button 
