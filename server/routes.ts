@@ -51,7 +51,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Dashboard Stats (protected by global middleware)
   app.get("/api/dashboard/stats", async (req: AuthRequest, res) => {
     try {
-      const stats = await storage.getDashboardStats();
+      if (!req.user) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      const stats = await storage.getDashboardStats(req.user.tenantId);
       res.json(stats);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch dashboard stats" });

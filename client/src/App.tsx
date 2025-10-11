@@ -79,6 +79,9 @@ function Router() {
       <Route path="/master-data">
         <PrivateRoute component={MasterData} />
       </Route>
+      <Route path="/settings">
+        <PrivateRoute component={MasterData} />
+      </Route>
       <Route component={NotFound} />
     </Switch>
   );

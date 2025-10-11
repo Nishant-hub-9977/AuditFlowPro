@@ -120,7 +120,7 @@ export interface IStorage {
   deleteFollowUpAction(id: string): Promise<boolean>;
 
   // Dashboard stats
-  getDashboardStats(): Promise<{
+  getDashboardStats(tenantId: string): Promise<{
     totalAudits: number;
     pendingAudits: number;
     completedAudits: number;
@@ -647,20 +647,37 @@ export class DbStorage implements IStorage {
   }
 
   // Dashboard stats
-  async getDashboardStats(): Promise<{
+  async getDashboardStats(tenantId: string): Promise<{
     totalAudits: number;
     pendingAudits: number;
     completedAudits: number;
     totalLeads: number;
   }> {
-    const [totalAuditsResult] = await db.select({ count: sql<number>`count(*)` }).from(schema.audits);
-    const [pendingAuditsResult] = await db.select({ count: sql<number>`count(*)` })
+    const [totalAuditsResult] = await db
+      .select({ count: sql<number>`count(*)` })
       .from(schema.audits)
-      .where(eq(schema.audits.status, 'planning'));
-    const [completedAuditsResult] = await db.select({ count: sql<number>`count(*)` })
+      .where(eq(schema.audits.tenantId, tenantId));
+    
+    const [pendingAuditsResult] = await db
+      .select({ count: sql<number>`count(*)` })
       .from(schema.audits)
-      .where(eq(schema.audits.status, 'completed'));
-    const [totalLeadsResult] = await db.select({ count: sql<number>`count(*)` }).from(schema.leads);
+      .where(and(
+        eq(schema.audits.tenantId, tenantId),
+        eq(schema.audits.status, 'planning')
+      ));
+    
+    const [completedAuditsResult] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(schema.audits)
+      .where(and(
+        eq(schema.audits.tenantId, tenantId),
+        eq(schema.audits.status, 'completed')
+      ));
+    
+    const [totalLeadsResult] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(schema.leads)
+      .where(eq(schema.leads.tenantId, tenantId));
 
     return {
       totalAudits: Number(totalAuditsResult.count),
