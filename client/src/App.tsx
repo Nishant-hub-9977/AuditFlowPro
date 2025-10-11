@@ -1,4 +1,4 @@
-import { Switch, Route, useLocation } from "wouter";
+import { Switch, Route, useLocation, Redirect } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { AuthProvider, useAuth } from "@/lib/authContext";
 import Dashboard from "@/pages/Dashboard";
 import Audits from "@/pages/Audits";
 import Leads from "@/pages/Leads";
@@ -45,15 +46,39 @@ function AppLayout({ children }: { children: React.ReactNode }) {
   );
 }
 
+function PrivateRoute({ component: Component }: { component: React.ComponentType }) {
+  const { user, isLoading } = useAuth();
+  
+  if (isLoading) {
+    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  }
+  
+  if (!user) {
+    return <Redirect to="/login" />;
+  }
+  
+  return <Component />;
+}
+
 function Router() {
   return (
     <Switch>
       <Route path="/login" component={Login} />
-      <Route path="/" component={Dashboard} />
-      <Route path="/audits" component={Audits} />
-      <Route path="/leads" component={Leads} />
-      <Route path="/reports" component={Reports} />
-      <Route path="/master-data" component={MasterData} />
+      <Route path="/">
+        <PrivateRoute component={Dashboard} />
+      </Route>
+      <Route path="/audits">
+        <PrivateRoute component={Audits} />
+      </Route>
+      <Route path="/leads">
+        <PrivateRoute component={Leads} />
+      </Route>
+      <Route path="/reports">
+        <PrivateRoute component={Reports} />
+      </Route>
+      <Route path="/master-data">
+        <PrivateRoute component={MasterData} />
+      </Route>
       <Route component={NotFound} />
     </Switch>
   );
@@ -63,10 +88,12 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <AppLayout>
-          <Router />
-        </AppLayout>
-        <Toaster />
+        <AuthProvider>
+          <AppLayout>
+            <Router />
+          </AppLayout>
+          <Toaster />
+        </AuthProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );

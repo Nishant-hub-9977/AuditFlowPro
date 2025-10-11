@@ -1,17 +1,42 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
+import { useAuth } from "@/lib/authContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Building2, Lock, Mail } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Login() {
+  const [, setLocation] = useLocation();
+  const { login } = useAuth();
+  const { toast } = useToast();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = () => {
-    console.log("Login attempt:", { email, password });
+  const handleLogin = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setIsLoading(true);
+
+    try {
+      await login(email, password);
+      toast({
+        title: "Success",
+        description: "Logged in successfully",
+      });
+      setLocation("/");
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Login failed",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -24,7 +49,7 @@ export default function Login() {
               <Building2 className="h-7 w-7 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold">SP121</h1>
+              <h1 className="text-2xl font-bold">Audit Flow Pro</h1>
               <p className="text-sm text-muted-foreground">Audit Platform</p>
             </div>
           </div>
@@ -36,94 +61,62 @@ export default function Login() {
             </p>
           </div>
 
-          <Tabs defaultValue="enterprise" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="enterprise" data-testid="tab-enterprise">
-                Enterprise User
-              </TabsTrigger>
-              <TabsTrigger value="partner" data-testid="tab-partner">
-                Channel Partner
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="enterprise" className="space-y-4 mt-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="you@company.com"
-                    className="pl-10"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    data-testid="input-email"
-                  />
-                </div>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="admin@example.com"
+                  className="pl-10"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  data-testid="input-email"
+                />
               </div>
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="••••••••"
-                    className="pl-10"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    data-testid="input-password"
-                  />
-                </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  className="pl-10"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  data-testid="input-password"
+                />
               </div>
+            </div>
 
-              <Button className="w-full" onClick={handleLogin} data-testid="button-login">
-                Sign In
-              </Button>
+            <Button 
+              type="submit" 
+              className="w-full" 
+              disabled={isLoading} 
+              data-testid="button-login"
+            >
+              {isLoading ? "Signing in..." : "Sign In"}
+            </Button>
 
-              <div className="text-center text-sm text-muted-foreground">
-                <a href="#" className="hover:text-foreground">
-                  Forgot your password?
-                </a>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="partner" className="space-y-4 mt-4">
-              <div className="space-y-2">
-                <Label htmlFor="partner-email">Email</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="partner-email"
-                    type="email"
-                    placeholder="partner@company.com"
-                    className="pl-10"
-                    data-testid="input-partner-email"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="partner-password">Password</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="partner-password"
-                    type="password"
-                    placeholder="••••••••"
-                    className="pl-10"
-                    data-testid="input-partner-password"
-                  />
-                </div>
-              </div>
-
-              <Button className="w-full" data-testid="button-partner-login">
-                Sign In as Partner
-              </Button>
-            </TabsContent>
-          </Tabs>
+            <div className="text-center text-sm text-muted-foreground">
+              <p className="mb-2">Demo credentials: admin@example.com / admin123</p>
+              <button
+                type="button"
+                className="text-primary hover:underline"
+                onClick={() => setLocation("/register")}
+                data-testid="link-register"
+              >
+                Don't have an account? Sign up
+              </button>
+            </div>
+          </form>
         </div>
       </div>
 
