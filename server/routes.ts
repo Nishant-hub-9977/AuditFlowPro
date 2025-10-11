@@ -48,8 +48,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     authenticateToken(req as AuthRequest, res, next);
   });
   
-  // Dashboard Stats (protected by global middleware)
-  app.get("/api/dashboard/stats", async (req: AuthRequest, res) => {
+  // Dashboard Stats
+  app.get("/api/dashboard/stats", authenticateToken, async (req: AuthRequest, res) => {
     try {
       if (!req.user) {
         return res.status(401).json({ message: "Unauthorized" });
@@ -476,7 +476,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Audits
-  app.get("/api/audits", async (req, res) => {
+  app.get("/api/audits", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const { status, auditorId } = req.query;
       let audits;
@@ -493,7 +493,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/audits/:id", async (req, res) => {
+  app.get("/api/audits/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const audit = await storage.getAudit(req.params.id);
       if (!audit) {
@@ -505,7 +505,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/audits", async (req: AuthRequest, res) => {
+  app.post("/api/audits", authenticateToken, async (req: AuthRequest, res) => {
     try {
       if (!req.user) {
         return res.status(401).json({ message: "Unauthorized" });
@@ -525,7 +525,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/audits/:id", async (req, res) => {
+  app.put("/api/audits/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const validated = insertAuditSchema.partial().parse(req.body);
       const audit = await storage.updateAudit(req.params.id, validated);
@@ -538,7 +538,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/audits/:id", async (req, res) => {
+  app.delete("/api/audits/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const deleted = await storage.deleteAudit(req.params.id);
       if (!deleted) {
@@ -551,7 +551,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Audit Workflow Transitions
-  app.post("/api/audits/:id/submit-for-review", async (req: AuthRequest, res) => {
+  app.post("/api/audits/:id/submit-for-review", authenticateToken, async (req: AuthRequest, res) => {
     try {
       if (!req.user) {
         return res.status(401).json({ message: "Unauthorized" });
@@ -768,7 +768,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Leads
-  app.get("/api/leads", async (req, res) => {
+  app.get("/api/leads", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const { status, assignedTo } = req.query;
       let leads;
@@ -785,7 +785,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/leads/:id", async (req, res) => {
+  app.get("/api/leads/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const lead = await storage.getLead(req.params.id);
       if (!lead) {
@@ -797,7 +797,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/leads", async (req: AuthRequest, res) => {
+  app.post("/api/leads", authenticateToken, async (req: AuthRequest, res) => {
     try {
       if (!req.user) {
         return res.status(401).json({ message: "Unauthorized" });
@@ -812,7 +812,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/leads/:id", async (req, res) => {
+  app.put("/api/leads/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const validated = insertLeadSchema.partial().parse(req.body);
       const lead = await storage.updateLead(req.params.id, validated);
@@ -825,7 +825,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/leads/:id", async (req, res) => {
+  app.delete("/api/leads/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const deleted = await storage.deleteLead(req.params.id);
       if (!deleted) {
