@@ -45,6 +45,30 @@ This is a comprehensive web-based audit and lead management platform designed fo
 
 Preferred communication style: Simple, everyday language.
 
+## Test Credentials
+
+The platform includes demo accounts for all roles:
+
+1. **Master Admin** (Full System Access)
+   - Email: admin@example.com
+   - Password: admin123
+   - Access: All pages and features
+
+2. **Admin** (Management Access)
+   - Email: admin_user@example.com
+   - Password: demo123
+   - Access: Dashboard, Audits, Leads, Reports, Settings
+
+3. **Client** (Limited Access)
+   - Email: client_user@example.com
+   - Password: demo123
+   - Access: Dashboard, Audits, Leads
+
+4. **Auditor** (Audit Only)
+   - Email: auditor_user@example.com
+   - Password: demo123
+   - Access: Dashboard, Audits
+
 ## System Architecture
 
 ### Frontend Architecture

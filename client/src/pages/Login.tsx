@@ -27,14 +27,14 @@ export default function Login() {
         title: "Success",
         description: "Logged in successfully",
       });
-      setLocation("/");
+      // Use window.location to ensure full page reload with updated auth state
+      window.location.href = "/";
     } catch (error: any) {
       toast({
         title: "Error",
         description: error.message || "Login failed",
         variant: "destructive",
       });
-    } finally {
       setIsLoading(false);
     }
   };
@@ -105,8 +105,16 @@ export default function Login() {
               {isLoading ? "Signing in..." : "Sign In"}
             </Button>
 
-            <div className="text-center text-sm text-muted-foreground">
-              <p className="mb-2">Demo credentials: admin@example.com / admin123</p>
+            <div className="text-center text-sm">
+              <div className="mb-3 p-3 rounded-md bg-muted/50">
+                <p className="font-semibold mb-2 text-foreground">Demo Credentials:</p>
+                <div className="space-y-1 text-muted-foreground">
+                  <p><strong>Master Admin:</strong> admin@example.com / admin123</p>
+                  <p><strong>Admin:</strong> admin_user@example.com / demo123</p>
+                  <p><strong>Client:</strong> client_user@example.com / demo123</p>
+                  <p><strong>Auditor:</strong> auditor_user@example.com / demo123</p>
+                </div>
+              </div>
               <button
                 type="button"
                 className="text-primary hover:underline"
