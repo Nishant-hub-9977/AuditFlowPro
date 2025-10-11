@@ -13,13 +13,14 @@ import Leads from "@/pages/Leads";
 import Reports from "@/pages/Reports";
 import MasterData from "@/pages/MasterData";
 import Login from "@/pages/Login";
+import Register from "@/pages/Register";
 import NotFound from "@/pages/not-found";
 
 function AppLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
 
-  // Don't show sidebar/header for login page
-  if (location === "/login") {
+  // Don't show sidebar/header for login/register pages
+  if (location === "/login" || location === "/register") {
     return <>{children}</>;
   }
 
@@ -64,6 +65,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/login" component={Login} />
+      <Route path="/register" component={Register} />
       <Route path="/">
         <PrivateRoute component={Dashboard} />
       </Route>
