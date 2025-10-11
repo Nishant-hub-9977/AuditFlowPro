@@ -22,8 +22,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auth routes (public)
   app.use("/api/auth", authRoutes);
   
-  // Dashboard Stats (protected)
-  app.get("/api/dashboard/stats", authenticateToken, async (req: AuthRequest, res) => {
+  // Protect all API routes except /api/auth
+  app.use("/api/*", (req, res, next) => {
+    if (req.path.startsWith("/api/auth")) {
+      return next();
+    }
+    authenticateToken(req as AuthRequest, res, next);
+  });
+  
+  // Dashboard Stats (protected by global middleware)
+  app.get("/api/dashboard/stats", async (req: AuthRequest, res) => {
     try {
       const stats = await storage.getDashboardStats();
       res.json(stats);
@@ -32,8 +40,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Users
-  app.get("/api/users", async (req, res) => {
+  // Users (Admin only for list, authenticated for own profile)
+  app.get("/api/users", authenticateToken, authorizeRoles("admin"), async (req: AuthRequest, res) => {
     try {
       const users = await storage.getAllUsers();
       res.json(users);
@@ -42,7 +50,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/users/:id", async (req, res) => {
+  app.get("/api/users/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const user = await storage.getUser(req.params.id);
       if (!user) {
@@ -54,8 +62,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Industries
-  app.get("/api/industries", async (req, res) => {
+  // Industries (Protected)
+  app.get("/api/industries", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const industries = await storage.getAllIndustries();
       res.json(industries);
@@ -64,7 +72,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/industries/:id", async (req, res) => {
+  app.get("/api/industries/:id", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const industry = await storage.getIndustry(req.params.id);
       if (!industry) {
