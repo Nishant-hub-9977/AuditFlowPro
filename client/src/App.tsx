@@ -7,6 +7,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AuthProvider, useAuth } from "@/lib/authContext";
+import { RoleGuard } from "@/components/RoleGuard";
 import Dashboard from "@/pages/Dashboard";
 import Audits from "@/pages/Audits";
 import Leads from "@/pages/Leads";
@@ -47,7 +48,7 @@ function AppLayout({ children }: { children: React.ReactNode }) {
   );
 }
 
-function PrivateRoute({ component: Component }: { component: React.ComponentType }) {
+function PrivateRoute({ component: Component, children }: { component?: React.ComponentType; children?: React.ReactNode }) {
   const { user, isLoading } = useAuth();
   
   if (isLoading) {
@@ -58,7 +59,7 @@ function PrivateRoute({ component: Component }: { component: React.ComponentType
     return <Redirect to="/login" />;
   }
   
-  return <Component />;
+  return Component ? <Component /> : <>{children}</>;
 }
 
 function Router() {
@@ -70,19 +71,39 @@ function Router() {
         <PrivateRoute component={Dashboard} />
       </Route>
       <Route path="/audits">
-        <PrivateRoute component={Audits} />
+        <PrivateRoute>
+          <RoleGuard allowedRoles={["auditor", "client", "admin", "master_admin"]}>
+            <Audits />
+          </RoleGuard>
+        </PrivateRoute>
       </Route>
       <Route path="/leads">
-        <PrivateRoute component={Leads} />
+        <PrivateRoute>
+          <RoleGuard allowedRoles={["client", "admin", "master_admin"]}>
+            <Leads />
+          </RoleGuard>
+        </PrivateRoute>
       </Route>
       <Route path="/reports">
-        <PrivateRoute component={Reports} />
+        <PrivateRoute>
+          <RoleGuard allowedRoles={["admin", "master_admin"]}>
+            <Reports />
+          </RoleGuard>
+        </PrivateRoute>
       </Route>
       <Route path="/master-data">
-        <PrivateRoute component={MasterData} />
+        <PrivateRoute>
+          <RoleGuard allowedRoles={["admin", "master_admin"]}>
+            <MasterData />
+          </RoleGuard>
+        </PrivateRoute>
       </Route>
       <Route path="/settings">
-        <PrivateRoute component={MasterData} />
+        <PrivateRoute>
+          <RoleGuard allowedRoles={["admin", "master_admin"]}>
+            <MasterData />
+          </RoleGuard>
+        </PrivateRoute>
       </Route>
       <Route component={NotFound} />
     </Switch>
