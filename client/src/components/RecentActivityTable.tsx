@@ -58,8 +58,8 @@ export function RecentActivityTable() {
           View All
         </Button>
       </CardHeader>
-      <CardContent>
-        <div className="overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+      <CardContent className="p-0">
+        <div className="overflow-x-auto px-6 pb-6" style={{ WebkitOverflowScrolling: 'touch' }}>
           <div className="min-w-[800px]">
             <Table>
               <TableHeader>
