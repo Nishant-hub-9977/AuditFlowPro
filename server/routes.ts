@@ -698,6 +698,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Lead Workflow Transitions
+  app.post("/api/leads/:id/qualify", async (req, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      if (req.user.role !== 'admin' && req.user.role !== 'lead_manager') {
+        return res.status(403).json({ message: "Only admins and lead managers can qualify leads" });
+      }
+      const lead = await storage.qualifyLead(req.params.id, req.user.tenantId);
+      if (!lead) {
+        return res.status(404).json({ message: "Lead not found" });
+      }
+      res.json(lead);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || "Failed to qualify lead" });
+    }
+  });
+
+  app.post("/api/leads/:id/start-progress", async (req, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      if (req.user.role !== 'admin' && req.user.role !== 'lead_manager') {
+        return res.status(403).json({ message: "Only admins and lead managers can start lead progress" });
+      }
+      const lead = await storage.startLeadProgress(req.params.id, req.user.tenantId);
+      if (!lead) {
+        return res.status(404).json({ message: "Lead not found" });
+      }
+      res.json(lead);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || "Failed to start lead progress" });
+    }
+  });
+
+  app.post("/api/leads/:id/convert", async (req, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      if (req.user.role !== 'admin' && req.user.role !== 'lead_manager') {
+        return res.status(403).json({ message: "Only admins and lead managers can convert leads" });
+      }
+      const lead = await storage.convertLead(req.params.id, req.user.tenantId);
+      if (!lead) {
+        return res.status(404).json({ message: "Lead not found" });
+      }
+      res.json(lead);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || "Failed to convert lead" });
+    }
+  });
+
+  app.post("/api/leads/:id/close", async (req, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      if (req.user.role !== 'admin' && req.user.role !== 'lead_manager') {
+        return res.status(403).json({ message: "Only admins and lead managers can close leads" });
+      }
+      const lead = await storage.closeLead(req.params.id, req.user.tenantId);
+      if (!lead) {
+        return res.status(404).json({ message: "Lead not found" });
+      }
+      res.json(lead);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || "Failed to close lead" });
+    }
+  });
+
   // Files
   app.get("/api/files", async (req, res) => {
     try {

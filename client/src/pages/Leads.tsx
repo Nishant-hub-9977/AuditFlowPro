@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, LayoutGrid, List } from "lucide-react";
+import { Plus, LayoutGrid, List, CheckCircle, PlayCircle, XCircle, TrendingUp } from "lucide-react";
 import { LeadKanban } from "@/components/LeadKanban";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -13,15 +13,67 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import type { Lead } from "@shared/schema";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Leads() {
   const [view, setView] = useState<"kanban" | "table">("kanban");
+  const { toast } = useToast();
 
   const { data: leads = [], isLoading } = useQuery<Lead[]>({
     queryKey: ["/api/leads"],
   });
+
+  const qualifyMutation = useMutation({
+    mutationFn: (leadId: string) => apiRequest(`/api/leads/${leadId}/qualify`, "POST"),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+      toast({ title: "Success", description: "Lead qualified" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message || "Failed to qualify lead", variant: "destructive" });
+    },
+  });
+
+  const startProgressMutation = useMutation({
+    mutationFn: (leadId: string) => apiRequest(`/api/leads/${leadId}/start-progress`, "POST"),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+      toast({ title: "Success", description: "Lead moved to in progress" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message || "Failed to start progress", variant: "destructive" });
+    },
+  });
+
+  const convertMutation = useMutation({
+    mutationFn: (leadId: string) => apiRequest(`/api/leads/${leadId}/convert`, "POST"),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+      toast({ title: "Success", description: "Lead converted successfully" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message || "Failed to convert lead", variant: "destructive" });
+    },
+  });
+
+  const closeMutation = useMutation({
+    mutationFn: (leadId: string) => apiRequest(`/api/leads/${leadId}/close`, "POST"),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+      toast({ title: "Success", description: "Lead closed" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message || "Failed to close lead", variant: "destructive" });
+    },
+  });
+
+  const canQualify = (lead: Lead) => lead.status === 'new';
+  const canStartProgress = (lead: Lead) => lead.status === 'qualified';
+  const canConvert = (lead: Lead) => lead.status === 'in_progress';
+  const canClose = (lead: Lead) => lead.status !== 'converted' && lead.status !== 'closed';
 
   const getPriorityVariant = (priority: string) => {
     switch (priority) {
@@ -131,7 +183,55 @@ export default function Leads() {
                         </div>
                       </div>
                       
-                      <div className="flex justify-end pt-2 border-t">
+                      <div className="flex justify-end gap-2 pt-2 border-t flex-wrap">
+                        {canQualify(lead) && (
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => qualifyMutation.mutate(lead.id)}
+                            disabled={qualifyMutation.isPending}
+                            data-testid={`button-qualify-${lead.id}`}
+                          >
+                            <CheckCircle className="h-4 w-4 mr-1" />
+                            Qualify
+                          </Button>
+                        )}
+                        {canStartProgress(lead) && (
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => startProgressMutation.mutate(lead.id)}
+                            disabled={startProgressMutation.isPending}
+                            data-testid={`button-start-progress-${lead.id}`}
+                          >
+                            <PlayCircle className="h-4 w-4 mr-1" />
+                            Start
+                          </Button>
+                        )}
+                        {canConvert(lead) && (
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => convertMutation.mutate(lead.id)}
+                            disabled={convertMutation.isPending}
+                            data-testid={`button-convert-${lead.id}`}
+                          >
+                            <TrendingUp className="h-4 w-4 mr-1" />
+                            Convert
+                          </Button>
+                        )}
+                        {canClose(lead) && (
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => closeMutation.mutate(lead.id)}
+                            disabled={closeMutation.isPending}
+                            data-testid={`button-close-${lead.id}`}
+                          >
+                            <XCircle className="h-4 w-4 mr-1" />
+                            Close
+                          </Button>
+                        )}
                         <Button variant="ghost" size="sm" data-testid={`button-view-${lead.id}`}>
                           View
                         </Button>
@@ -176,9 +276,59 @@ export default function Leads() {
                           </TableCell>
                           <TableCell>{lead.phone}</TableCell>
                           <TableCell className="text-right">
-                            <Button variant="ghost" size="sm" data-testid={`button-view-${lead.id}`}>
-                              View
-                            </Button>
+                            <div className="flex justify-end gap-2">
+                              {canQualify(lead) && (
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  onClick={() => qualifyMutation.mutate(lead.id)}
+                                  disabled={qualifyMutation.isPending}
+                                  data-testid={`button-qualify-${lead.id}`}
+                                >
+                                  <CheckCircle className="h-4 w-4 mr-1" />
+                                  Qualify
+                                </Button>
+                              )}
+                              {canStartProgress(lead) && (
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  onClick={() => startProgressMutation.mutate(lead.id)}
+                                  disabled={startProgressMutation.isPending}
+                                  data-testid={`button-start-progress-${lead.id}`}
+                                >
+                                  <PlayCircle className="h-4 w-4 mr-1" />
+                                  Start
+                                </Button>
+                              )}
+                              {canConvert(lead) && (
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  onClick={() => convertMutation.mutate(lead.id)}
+                                  disabled={convertMutation.isPending}
+                                  data-testid={`button-convert-${lead.id}`}
+                                >
+                                  <TrendingUp className="h-4 w-4 mr-1" />
+                                  Convert
+                                </Button>
+                              )}
+                              {canClose(lead) && (
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  onClick={() => closeMutation.mutate(lead.id)}
+                                  disabled={closeMutation.isPending}
+                                  data-testid={`button-close-${lead.id}`}
+                                >
+                                  <XCircle className="h-4 w-4 mr-1" />
+                                  Close
+                                </Button>
+                              )}
+                              <Button variant="ghost" size="sm" data-testid={`button-view-${lead.id}`}>
+                                View
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}

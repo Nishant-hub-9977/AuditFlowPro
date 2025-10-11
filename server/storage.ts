@@ -99,6 +99,12 @@ export interface IStorage {
   getLeadsByAssignedUser(userId: string): Promise<Lead[]>;
   updateLead(id: string, lead: Partial<InsertLead>): Promise<Lead | undefined>;
   deleteLead(id: string): Promise<boolean>;
+  
+  // Lead Workflow Transitions
+  qualifyLead(id: string, tenantId: string): Promise<Lead | undefined>;
+  startLeadProgress(id: string, tenantId: string): Promise<Lead | undefined>;
+  convertLead(id: string, tenantId: string): Promise<Lead | undefined>;
+  closeLead(id: string, tenantId: string): Promise<Lead | undefined>;
 
   // Files
   getFile(id: string): Promise<File | undefined>;
@@ -513,6 +519,59 @@ export class DbStorage implements IStorage {
   async deleteLead(id: string): Promise<boolean> {
     const result = await db.delete(schema.leads).where(eq(schema.leads.id, id));
     return (result.rowCount ?? 0) > 0;
+  }
+
+  // Lead Workflow Transitions
+  async qualifyLead(id: string, tenantId: string): Promise<Lead | undefined> {
+    const lead = await this.getLead(id);
+    if (!lead || lead.tenantId !== tenantId) return undefined;
+    if (lead.status !== 'new') {
+      throw new Error('Only new leads can be qualified');
+    }
+    const [updated] = await db.update(schema.leads)
+      .set({ status: 'qualified', updatedAt: new Date() })
+      .where(and(eq(schema.leads.id, id), eq(schema.leads.tenantId, tenantId)))
+      .returning();
+    return updated;
+  }
+
+  async startLeadProgress(id: string, tenantId: string): Promise<Lead | undefined> {
+    const lead = await this.getLead(id);
+    if (!lead || lead.tenantId !== tenantId) return undefined;
+    if (lead.status !== 'qualified') {
+      throw new Error('Only qualified leads can be moved to in progress');
+    }
+    const [updated] = await db.update(schema.leads)
+      .set({ status: 'in_progress', updatedAt: new Date() })
+      .where(and(eq(schema.leads.id, id), eq(schema.leads.tenantId, tenantId)))
+      .returning();
+    return updated;
+  }
+
+  async convertLead(id: string, tenantId: string): Promise<Lead | undefined> {
+    const lead = await this.getLead(id);
+    if (!lead || lead.tenantId !== tenantId) return undefined;
+    if (lead.status !== 'in_progress') {
+      throw new Error('Only leads in progress can be converted');
+    }
+    const [updated] = await db.update(schema.leads)
+      .set({ status: 'converted', updatedAt: new Date() })
+      .where(and(eq(schema.leads.id, id), eq(schema.leads.tenantId, tenantId)))
+      .returning();
+    return updated;
+  }
+
+  async closeLead(id: string, tenantId: string): Promise<Lead | undefined> {
+    const lead = await this.getLead(id);
+    if (!lead || lead.tenantId !== tenantId) return undefined;
+    if (lead.status === 'converted' || lead.status === 'closed') {
+      throw new Error('Cannot close a converted or already closed lead');
+    }
+    const [updated] = await db.update(schema.leads)
+      .set({ status: 'closed', updatedAt: new Date() })
+      .where(and(eq(schema.leads.id, id), eq(schema.leads.tenantId, tenantId)))
+      .returning();
+    return updated;
   }
 
   // Files
