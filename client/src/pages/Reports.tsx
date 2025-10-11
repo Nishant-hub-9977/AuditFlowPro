@@ -1,7 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { TrendingUp, Users, BarChart3, PieChart as PieChartIcon, DollarSign } from "lucide-react";
+import { TrendingUp, Users, BarChart3, PieChart as PieChartIcon, DollarSign, Download } from "lucide-react";
+import { useAuth } from "@/lib/authContext";
 
 const CHART_COLORS = [
   'hsl(var(--chart-1))',
@@ -28,6 +30,8 @@ interface LeadReports {
 }
 
 export default function Reports() {
+  const { accessToken } = useAuth();
+
   const { data: auditReports, isLoading: auditLoading } = useQuery<AuditReports>({
     queryKey: ['/api/reports/audits'],
   });
@@ -37,6 +41,54 @@ export default function Reports() {
   });
 
   const isLoading = auditLoading || leadLoading;
+
+  const handleExportAudits = async () => {
+    try {
+      const response = await fetch('/api/reports/audits/export/csv', {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+        },
+      });
+      
+      if (!response.ok) throw new Error('Export failed');
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'audit-reports.csv';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Failed to export audit reports:', error);
+    }
+  };
+
+  const handleExportLeads = async () => {
+    try {
+      const response = await fetch('/api/reports/leads/export/csv', {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+        },
+      });
+      
+      if (!response.ok) throw new Error('Export failed');
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'lead-reports.csv';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Failed to export lead reports:', error);
+    }
+  };
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -60,13 +112,35 @@ export default function Reports() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-semibold" data-testid="heading-reports">
-          Reports & Analytics
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          Comprehensive metrics and insights for audits and leads
-        </p>
+      <div className="flex justify-between items-start flex-wrap gap-4">
+        <div>
+          <h1 className="text-3xl font-semibold" data-testid="heading-reports">
+            Reports & Analytics
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            Comprehensive metrics and insights for audits and leads
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExportAudits}
+            data-testid="button-export-audits"
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Export Audits
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExportLeads}
+            data-testid="button-export-leads"
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Export Leads
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (

@@ -18,6 +18,23 @@ import {
 import authRoutes from "./authRoutes";
 import { authenticateToken, authorizeRoles, hashPassword, type AuthRequest } from "./auth";
 
+// CSV escaping utility
+function escapeCSVField(field: string | number): string {
+  if (typeof field === 'number') {
+    return field.toString();
+  }
+  
+  const stringField = String(field);
+  
+  // Check if field needs escaping (contains comma, quote, or newline)
+  if (stringField.includes(',') || stringField.includes('"') || stringField.includes('\n')) {
+    // Escape double quotes by doubling them and wrap in quotes
+    return `"${stringField.replace(/"/g, '""')}"`;
+  }
+  
+  return stringField;
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   
   // Auth routes (public)
@@ -63,6 +80,85 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(reports);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch lead reports" });
+    }
+  });
+
+  // CSV Export Endpoints
+  app.get("/api/reports/audits/export/csv", async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      const reports = await storage.getAuditReports(req.user.tenantId);
+      
+      // Generate CSV for audits by status
+      let csv = "Audit Reports Export\n\n";
+      csv += "Audits by Status\n";
+      csv += "Status,Count\n";
+      reports.auditsByStatus.forEach(row => {
+        csv += `${escapeCSVField(row.status)},${escapeCSVField(row.count)}\n`;
+      });
+      
+      csv += "\nAudits by Industry\n";
+      csv += "Industry,Count\n";
+      reports.auditsByIndustry.forEach(row => {
+        csv += `${escapeCSVField(row.industryName)},${escapeCSVField(row.count)}\n`;
+      });
+      
+      csv += "\nAudits by Type\n";
+      csv += "Audit Type,Count\n";
+      reports.auditsByType.forEach(row => {
+        csv += `${escapeCSVField(row.auditTypeName)},${escapeCSVField(row.count)}\n`;
+      });
+      
+      csv += `\nTotal Audits,${escapeCSVField(reports.totalAudits)}\n`;
+      
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename=audit-reports.csv');
+      res.send(csv);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to export audit reports" });
+    }
+  });
+
+  app.get("/api/reports/leads/export/csv", async (req: AuthRequest, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      const reports = await storage.getLeadReports(req.user.tenantId);
+      
+      // Generate CSV for leads
+      let csv = "Lead Reports Export\n\n";
+      csv += "Leads by Status\n";
+      csv += "Status,Count\n";
+      reports.leadsByStatus.forEach(row => {
+        csv += `${escapeCSVField(row.status)},${escapeCSVField(row.count)}\n`;
+      });
+      
+      csv += "\nLeads by Industry\n";
+      csv += "Industry,Count\n";
+      reports.leadsByIndustry.forEach(row => {
+        csv += `${escapeCSVField(row.industryName)},${escapeCSVField(row.count)}\n`;
+      });
+      
+      csv += "\nLeads by Priority\n";
+      csv += "Priority,Count\n";
+      reports.leadsByPriority.forEach(row => {
+        csv += `${escapeCSVField(row.priority)},${escapeCSVField(row.count)}\n`;
+      });
+      
+      csv += "\nSummary Metrics\n";
+      csv += "Metric,Value\n";
+      csv += `${escapeCSVField("Total Leads")},${escapeCSVField(reports.totalLeads)}\n`;
+      csv += `${escapeCSVField("Conversion Rate")},${escapeCSVField(reports.conversionRate + "%")}\n`;
+      csv += `${escapeCSVField("Total Estimated Value")},${escapeCSVField("$" + reports.totalEstimatedValue)}\n`;
+      
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename=lead-reports.csv');
+      res.send(csv);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to export lead reports" });
     }
   });
 
