@@ -61,8 +61,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Reports
-  app.get("/api/reports/audits", async (req: AuthRequest, res) => {
+  // Reports (Master Admin and Admin only)
+  app.get("/api/reports/audits", authenticateToken, authorizeRoles("master_admin", "admin"), async (req: AuthRequest, res) => {
     try {
       if (!req.user) {
         return res.status(401).json({ message: "Unauthorized" });
@@ -74,7 +74,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/reports/leads", async (req: AuthRequest, res) => {
+  app.get("/api/reports/leads", authenticateToken, authorizeRoles("master_admin", "admin"), async (req: AuthRequest, res) => {
     try {
       if (!req.user) {
         return res.status(401).json({ message: "Unauthorized" });
@@ -86,8 +86,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // CSV Export Endpoints
-  app.get("/api/reports/audits/export/csv", async (req: AuthRequest, res) => {
+  // CSV Export Endpoints (Master Admin and Admin only)
+  app.get("/api/reports/audits/export/csv", authenticateToken, authorizeRoles("master_admin", "admin"), async (req: AuthRequest, res) => {
     try {
       if (!req.user) {
         return res.status(401).json({ message: "Unauthorized" });
@@ -124,7 +124,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/reports/leads/export/csv", async (req: AuthRequest, res) => {
+  app.get("/api/reports/leads/export/csv", authenticateToken, authorizeRoles("master_admin", "admin"), async (req: AuthRequest, res) => {
     try {
       if (!req.user) {
         return res.status(401).json({ message: "Unauthorized" });
@@ -165,8 +165,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Users (Admin only for list, authenticated for own profile)
-  app.get("/api/users", authenticateToken, authorizeRoles("admin"), async (req: AuthRequest, res) => {
+  // Users (Master Admin and Admin only for list, authenticated for own profile)
+  app.get("/api/users", authenticateToken, authorizeRoles("master_admin", "admin"), async (req: AuthRequest, res) => {
     try {
       const users = await storage.getAllUsers(req.user!.tenantId);
       res.json(users);
@@ -187,7 +187,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/users", authenticateToken, authorizeRoles("admin"), async (req: AuthRequest, res) => {
+  app.post("/api/users", authenticateToken, authorizeRoles("master_admin", "admin"), async (req: AuthRequest, res) => {
     try {
       const validated = insertUserSchema.omit({ tenantId: true }).parse(req.body);
       const hashedPassword = await hashPassword(validated.password);
@@ -202,7 +202,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/users/:id", authenticateToken, authorizeRoles("admin"), async (req: AuthRequest, res) => {
+  app.put("/api/users/:id", authenticateToken, authorizeRoles("master_admin", "admin"), async (req: AuthRequest, res) => {
     try {
       const validated = insertUserSchema.omit({ tenantId: true }).partial().parse(req.body);
       const updateData = { ...validated };
@@ -222,7 +222,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/users/:id", authenticateToken, authorizeRoles("admin"), async (req: AuthRequest, res) => {
+  app.delete("/api/users/:id", authenticateToken, authorizeRoles("master_admin", "admin"), async (req: AuthRequest, res) => {
     try {
       const deleted = await storage.deleteUser(req.params.id, req.user!.tenantId);
       if (!deleted) {
@@ -571,7 +571,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.user) {
         return res.status(401).json({ message: "Unauthorized" });
       }
-      if (req.user.role !== 'admin') {
+      if (req.user.role !== 'master_admin' && req.user.role !== 'admin') {
         return res.status(403).json({ message: "Only admins can approve audits" });
       }
       const audit = await storage.approveAudit(req.params.id, req.user.tenantId);
@@ -589,7 +589,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.user) {
         return res.status(401).json({ message: "Unauthorized" });
       }
-      if (req.user.role !== 'admin') {
+      if (req.user.role !== 'master_admin' && req.user.role !== 'admin') {
         return res.status(403).json({ message: "Only admins can reject audits" });
       }
       const audit = await storage.rejectAudit(req.params.id, req.user.tenantId);
@@ -607,7 +607,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.user) {
         return res.status(401).json({ message: "Unauthorized" });
       }
-      if (req.user.role !== 'admin') {
+      if (req.user.role !== 'master_admin' && req.user.role !== 'admin') {
         return res.status(403).json({ message: "Only admins can close audits" });
       }
       const audit = await storage.closeAudit(req.params.id, req.user.tenantId);
@@ -843,8 +843,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.user) {
         return res.status(401).json({ message: "Unauthorized" });
       }
-      if (req.user.role !== 'admin' && req.user.role !== 'lead_manager') {
-        return res.status(403).json({ message: "Only admins and lead managers can qualify leads" });
+      if (req.user.role !== 'master_admin' && req.user.role !== 'admin') {
+        return res.status(403).json({ message: "Only admins can qualify leads" });
       }
       const lead = await storage.qualifyLead(req.params.id, req.user.tenantId);
       if (!lead) {
@@ -861,8 +861,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.user) {
         return res.status(401).json({ message: "Unauthorized" });
       }
-      if (req.user.role !== 'admin' && req.user.role !== 'lead_manager') {
-        return res.status(403).json({ message: "Only admins and lead managers can start lead progress" });
+      if (req.user.role !== 'master_admin' && req.user.role !== 'admin') {
+        return res.status(403).json({ message: "Only admins can start lead progress" });
       }
       const lead = await storage.startLeadProgress(req.params.id, req.user.tenantId);
       if (!lead) {
@@ -879,8 +879,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.user) {
         return res.status(401).json({ message: "Unauthorized" });
       }
-      if (req.user.role !== 'admin' && req.user.role !== 'lead_manager') {
-        return res.status(403).json({ message: "Only admins and lead managers can convert leads" });
+      if (req.user.role !== 'master_admin' && req.user.role !== 'admin') {
+        return res.status(403).json({ message: "Only admins can convert leads" });
       }
       const lead = await storage.convertLead(req.params.id, req.user.tenantId);
       if (!lead) {
@@ -897,8 +897,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.user) {
         return res.status(401).json({ message: "Unauthorized" });
       }
-      if (req.user.role !== 'admin' && req.user.role !== 'lead_manager') {
-        return res.status(403).json({ message: "Only admins and lead managers can close leads" });
+      if (req.user.role !== 'master_admin' && req.user.role !== 'admin') {
+        return res.status(403).json({ message: "Only admins can close leads" });
       }
       const lead = await storage.closeLead(req.params.id, req.user.tenantId);
       if (!lead) {

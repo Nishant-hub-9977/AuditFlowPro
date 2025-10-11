@@ -9,10 +9,13 @@ This is a comprehensive web-based audit and lead management platform designed fo
 ### Multi-Tenant SaaS Transformation
 - ✅ Implemented multi-tenant architecture with tenant isolation across all entities
 - ✅ Built comprehensive authentication system with JWT tokens, password hashing (bcrypt)
-- ✅ Created role-based authorization (admin, auditor, lead_manager, viewer)
+- ✅ **Updated role-based authorization (master_admin, admin, client, auditor)**
 - ✅ Secured all API routes with authentication middleware and role-based access control
 - ✅ Added unique constraints on users.username and users.email for security
 - ✅ Built Login/Register UI with AuthContext and protected route handling
+- ✅ **Implemented RoleGuard component for granular route protection**
+- ✅ **Role-based sidebar navigation (shows/hides items based on user role)**
+- ✅ **Profile badge in sidebar displaying current user role**
 
 ### Workflow State Machines (Architect-Approved)
 - ✅ **Audit Workflow**: Draft → Review → Approved → Closed
@@ -106,7 +109,7 @@ Preferred communication style: Simple, everyday language.
 
 **Complete Schema (11 Core Tables):**
 
-1. **users** - User accounts with roles (admin, auditor, sales_rep)
+1. **users** - User accounts with roles (master_admin, admin, client, auditor)
    - Fields: id (UUID), username, password, fullName, email, role, createdAt
    
 2. **industries** - Industry master data
