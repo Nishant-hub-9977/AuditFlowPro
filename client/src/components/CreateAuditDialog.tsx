@@ -4,7 +4,6 @@ import { z } from "zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/lib/authContext";
 import type { Industry, AuditType } from "@shared/schema";
 import {
   Dialog,
@@ -53,7 +52,6 @@ interface CreateAuditDialogProps {
 
 export function CreateAuditDialog({ open, onOpenChange }: CreateAuditDialogProps) {
   const { toast } = useToast();
-  const { user } = useAuth();
 
   const { data: industries = [] } = useQuery<Industry[]>({
     queryKey: ["/api/industries"],
@@ -72,7 +70,7 @@ export function CreateAuditDialog({ open, onOpenChange }: CreateAuditDialogProps
       siteLocation: "",
       industryId: "",
       auditTypeId: "",
-      auditorName: user?.fullName || "",
+      auditorName: "",
       auditDate: new Date().toISOString().split("T")[0],
       geoLocation: "",
     },
@@ -84,7 +82,7 @@ export function CreateAuditDialog({ open, onOpenChange }: CreateAuditDialogProps
       const auditPayload = {
         ...data,
         auditDate: new Date(data.auditDate).toISOString(),
-        auditorId: user?.id || null,
+        auditorId: null,
         industryId: data.industryId || null,
         auditTypeId: data.auditTypeId || null,
       };

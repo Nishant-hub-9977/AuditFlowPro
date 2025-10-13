@@ -46,11 +46,9 @@ import { insertUserSchema, insertIndustrySchema, insertAuditTypeSchema, userRole
 import { format } from "date-fns";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/lib/authContext";
 
 export default function MasterData() {
   const { toast } = useToast();
-  const { user: currentUser } = useAuth();
   const [userDialogOpen, setUserDialogOpen] = useState(false);
   const [industryDialogOpen, setIndustryDialogOpen] = useState(false);
   const [auditTypeDialogOpen, setAuditTypeDialogOpen] = useState(false);
@@ -350,7 +348,6 @@ export default function MasterData() {
                             size="icon" 
                             data-testid={`button-delete-user-${user.id}`}
                             onClick={() => deleteUserMutation.mutate(user.id)}
-                            disabled={user.id === currentUser?.id}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -408,7 +405,6 @@ export default function MasterData() {
                                 size="icon" 
                                 data-testid={`button-delete-user-${user.id}`}
                                 onClick={() => deleteUserMutation.mutate(user.id)}
-                                disabled={user.id === currentUser?.id}
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>

@@ -16,7 +16,7 @@ import {
   insertFollowUpActionSchema,
 } from "@shared/schema";
 import authRoutes from "./authRoutes";
-import { authenticateToken, authorizeRoles, hashPassword, type AuthRequest } from "./auth";
+import { hashPassword } from "./auth";
 
 // CSV escaping utility
 function escapeCSVField(field: string | number): string {
@@ -40,59 +40,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auth routes (public)
   app.use("/api/auth", authRoutes);
   
-  // Protect all API routes except /api/auth
-  app.use("/api/*", (req, res, next) => {
-    if (req.path.startsWith("/api/auth")) {
-      return next();
-    }
-    authenticateToken(req as AuthRequest, res, next);
-  });
-  
   // Dashboard Stats
-  app.get("/api/dashboard/stats", authenticateToken, async (req: AuthRequest, res) => {
+  app.get("/api/dashboard/stats", async (req, res) => {
     try {
-      if (!req.user) {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
-      const stats = await storage.getDashboardStats(req.user.tenantId);
+      const stats = await storage.getDashboardStats(null);
       res.json(stats);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch dashboard stats" });
     }
   });
 
-  // Reports (Master Admin and Admin only)
-  app.get("/api/reports/audits", authenticateToken, authorizeRoles("master_admin", "admin"), async (req: AuthRequest, res) => {
+  // Reports
+  app.get("/api/reports/audits", async (req, res) => {
     try {
-      if (!req.user) {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
-      const reports = await storage.getAuditReports(req.user.tenantId);
+      const reports = await storage.getAuditReports(null);
       res.json(reports);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch audit reports" });
     }
   });
 
-  app.get("/api/reports/leads", authenticateToken, authorizeRoles("master_admin", "admin"), async (req: AuthRequest, res) => {
+  app.get("/api/reports/leads", async (req, res) => {
     try {
-      if (!req.user) {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
-      const reports = await storage.getLeadReports(req.user.tenantId);
+      const reports = await storage.getLeadReports(null);
       res.json(reports);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch lead reports" });
     }
   });
 
-  // CSV Export Endpoints (Master Admin and Admin only)
-  app.get("/api/reports/audits/export/csv", authenticateToken, authorizeRoles("master_admin", "admin"), async (req: AuthRequest, res) => {
+  // CSV Export Endpoints
+  app.get("/api/reports/audits/export/csv", async (req, res) => {
     try {
-      if (!req.user) {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
-      const reports = await storage.getAuditReports(req.user.tenantId);
+      const reports = await storage.getAuditReports(null);
       
       // Generate CSV for audits by status
       let csv = "Audit Reports Export\n\n";
@@ -124,12 +104,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/reports/leads/export/csv", authenticateToken, authorizeRoles("master_admin", "admin"), async (req: AuthRequest, res) => {
+  app.get("/api/reports/leads/export/csv", async (req, res) => {
     try {
-      if (!req.user) {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
-      const reports = await storage.getLeadReports(req.user.tenantId);
+      const reports = await storage.getLeadReports(null);
       
       // Generate CSV for leads
       let csv = "Lead Reports Export\n\n";
@@ -165,19 +142,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Users (Master Admin and Admin only for list, authenticated for own profile)
-  app.get("/api/users", authenticateToken, authorizeRoles("master_admin", "admin"), async (req: AuthRequest, res) => {
+  // Users
+  app.get("/api/users", async (req, res) => {
     try {
-      const users = await storage.getAllUsers(req.user!.tenantId);
+      const users = await storage.getAllUsers(null);
       res.json(users);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch users" });
     }
   });
 
-  app.get("/api/users/:id", authenticateToken, async (req: AuthRequest, res) => {
+  app.get("/api/users/:id", async (req, res) => {
     try {
-      const user = await storage.getUser(req.params.id, req.user!.tenantId);
+      const user = await storage.getUser(req.params.id, null);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
@@ -187,14 +164,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/users", authenticateToken, authorizeRoles("master_admin", "admin"), async (req: AuthRequest, res) => {
+  app.post("/api/users", async (req, res) => {
     try {
       const validated = insertUserSchema.omit({ tenantId: true }).parse(req.body);
       const hashedPassword = await hashPassword(validated.password);
       const user = await storage.createUser({
         ...validated,
         password: hashedPassword,
-        tenantId: req.user!.tenantId,
+        tenantId: null,
       });
       res.status(201).json(user);
     } catch (error) {
@@ -202,7 +179,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/users/:id", authenticateToken, authorizeRoles("master_admin", "admin"), async (req: AuthRequest, res) => {
+  app.put("/api/users/:id", async (req, res) => {
     try {
       const validated = insertUserSchema.omit({ tenantId: true }).partial().parse(req.body);
       const updateData = { ...validated };
@@ -212,7 +189,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         updateData.password = await hashPassword(validated.password);
       }
       
-      const user = await storage.updateUser(req.params.id, req.user!.tenantId, updateData);
+      const user = await storage.updateUser(req.params.id, null, updateData);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
@@ -222,9 +199,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/users/:id", authenticateToken, authorizeRoles("master_admin", "admin"), async (req: AuthRequest, res) => {
+  app.delete("/api/users/:id", async (req, res) => {
     try {
-      const deleted = await storage.deleteUser(req.params.id, req.user!.tenantId);
+      const deleted = await storage.deleteUser(req.params.id, null);
       if (!deleted) {
         return res.status(404).json({ message: "User not found" });
       }
@@ -234,19 +211,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Industries (Protected)
-  app.get("/api/industries", authenticateToken, async (req: AuthRequest, res) => {
+  // Industries
+  app.get("/api/industries", async (req, res) => {
     try {
-      const industries = await storage.getAllIndustries(req.user!.tenantId);
+      const industries = await storage.getAllIndustries(null);
       res.json(industries);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch industries" });
     }
   });
 
-  app.get("/api/industries/:id", authenticateToken, async (req: AuthRequest, res) => {
+  app.get("/api/industries/:id", async (req, res) => {
     try {
-      const industry = await storage.getIndustry(req.params.id, req.user!.tenantId);
+      const industry = await storage.getIndustry(req.params.id, null);
       if (!industry) {
         return res.status(404).json({ message: "Industry not found" });
       }
@@ -256,12 +233,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/industries", authenticateToken, async (req: AuthRequest, res) => {
+  app.post("/api/industries", async (req, res) => {
     try {
       const validated = insertIndustrySchema.omit({ tenantId: true }).parse(req.body);
       const industry = await storage.createIndustry({
         ...validated,
-        tenantId: req.user!.tenantId,
+        tenantId: null,
       });
       res.status(201).json(industry);
     } catch (error) {
@@ -269,10 +246,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/industries/:id", authenticateToken, async (req: AuthRequest, res) => {
+  app.put("/api/industries/:id", async (req, res) => {
     try {
       const validated = insertIndustrySchema.omit({ tenantId: true }).partial().parse(req.body);
-      const industry = await storage.updateIndustry(req.params.id, req.user!.tenantId, validated);
+      const industry = await storage.updateIndustry(req.params.id, null, validated);
       if (!industry) {
         return res.status(404).json({ message: "Industry not found" });
       }
@@ -282,9 +259,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/industries/:id", authenticateToken, async (req: AuthRequest, res) => {
+  app.delete("/api/industries/:id", async (req, res) => {
     try {
-      const deleted = await storage.deleteIndustry(req.params.id, req.user!.tenantId);
+      const deleted = await storage.deleteIndustry(req.params.id, null);
       if (!deleted) {
         return res.status(404).json({ message: "Industry not found" });
       }
@@ -295,18 +272,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Audit Types
-  app.get("/api/audit-types", authenticateToken, async (req: AuthRequest, res) => {
+  app.get("/api/audit-types", async (req, res) => {
     try {
-      const auditTypes = await storage.getAllAuditTypes(req.user!.tenantId);
+      const auditTypes = await storage.getAllAuditTypes(null);
       res.json(auditTypes);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch audit types" });
     }
   });
 
-  app.get("/api/audit-types/:id", authenticateToken, async (req: AuthRequest, res) => {
+  app.get("/api/audit-types/:id", async (req, res) => {
     try {
-      const auditType = await storage.getAuditType(req.params.id, req.user!.tenantId);
+      const auditType = await storage.getAuditType(req.params.id, null);
       if (!auditType) {
         return res.status(404).json({ message: "Audit type not found" });
       }
@@ -316,12 +293,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/audit-types", authenticateToken, async (req: AuthRequest, res) => {
+  app.post("/api/audit-types", async (req, res) => {
     try {
       const validated = insertAuditTypeSchema.omit({ tenantId: true }).parse(req.body);
       const auditType = await storage.createAuditType({
         ...validated,
-        tenantId: req.user!.tenantId,
+        tenantId: null,
       });
       res.status(201).json(auditType);
     } catch (error) {
@@ -329,10 +306,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/audit-types/:id", authenticateToken, async (req: AuthRequest, res) => {
+  app.put("/api/audit-types/:id", async (req, res) => {
     try {
       const validated = insertAuditTypeSchema.omit({ tenantId: true }).partial().parse(req.body);
-      const auditType = await storage.updateAuditType(req.params.id, req.user!.tenantId, validated);
+      const auditType = await storage.updateAuditType(req.params.id, null, validated);
       if (!auditType) {
         return res.status(404).json({ message: "Audit type not found" });
       }
@@ -342,9 +319,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/audit-types/:id", authenticateToken, async (req: AuthRequest, res) => {
+  app.delete("/api/audit-types/:id", async (req, res) => {
     try {
-      const deleted = await storage.deleteAuditType(req.params.id, req.user!.tenantId);
+      const deleted = await storage.deleteAuditType(req.params.id, null);
       if (!deleted) {
         return res.status(404).json({ message: "Audit type not found" });
       }
@@ -476,7 +453,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Audits
-  app.get("/api/audits", authenticateToken, async (req: AuthRequest, res) => {
+  app.get("/api/audits", async (req, res) => {
     try {
       const { status, auditorId } = req.query;
       let audits;
@@ -493,7 +470,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/audits/:id", authenticateToken, async (req: AuthRequest, res) => {
+  app.get("/api/audits/:id", async (req, res) => {
     try {
       const audit = await storage.getAudit(req.params.id);
       if (!audit) {
@@ -505,14 +482,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/audits", authenticateToken, async (req: AuthRequest, res) => {
+  app.post("/api/audits", async (req, res) => {
     try {
-      if (!req.user) {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
       const dataWithTenant = { 
         ...req.body, 
-        tenantId: req.user.tenantId,
+        tenantId: null,
         // Convert auditDate from ISO string to Date object
         auditDate: req.body.auditDate ? new Date(req.body.auditDate) : undefined
       };
@@ -525,7 +499,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/audits/:id", authenticateToken, async (req: AuthRequest, res) => {
+  app.put("/api/audits/:id", async (req, res) => {
     try {
       const validated = insertAuditSchema.partial().parse(req.body);
       const audit = await storage.updateAudit(req.params.id, validated);
@@ -538,7 +512,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/audits/:id", authenticateToken, async (req: AuthRequest, res) => {
+  app.delete("/api/audits/:id", async (req, res) => {
     try {
       const deleted = await storage.deleteAudit(req.params.id);
       if (!deleted) {
@@ -551,12 +525,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Audit Workflow Transitions
-  app.post("/api/audits/:id/submit-for-review", authenticateToken, async (req: AuthRequest, res) => {
+  app.post("/api/audits/:id/submit-for-review", async (req, res) => {
     try {
-      if (!req.user) {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
-      const audit = await storage.submitAuditForReview(req.params.id, req.user.tenantId);
+      const audit = await storage.submitAuditForReview(req.params.id, null);
       if (!audit) {
         return res.status(404).json({ message: "Audit not found" });
       }
@@ -566,15 +537,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/audits/:id/approve", async (req: AuthRequest, res) => {
+  app.post("/api/audits/:id/approve", async (req, res) => {
     try {
-      if (!req.user) {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
-      if (req.user.role !== 'master_admin' && req.user.role !== 'admin') {
-        return res.status(403).json({ message: "Only admins can approve audits" });
-      }
-      const audit = await storage.approveAudit(req.params.id, req.user.tenantId);
+      const audit = await storage.approveAudit(req.params.id, null);
       if (!audit) {
         return res.status(404).json({ message: "Audit not found" });
       }
@@ -584,15 +549,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/audits/:id/reject", async (req: AuthRequest, res) => {
+  app.post("/api/audits/:id/reject", async (req, res) => {
     try {
-      if (!req.user) {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
-      if (req.user.role !== 'master_admin' && req.user.role !== 'admin') {
-        return res.status(403).json({ message: "Only admins can reject audits" });
-      }
-      const audit = await storage.rejectAudit(req.params.id, req.user.tenantId);
+      const audit = await storage.rejectAudit(req.params.id, null);
       if (!audit) {
         return res.status(404).json({ message: "Audit not found" });
       }
@@ -602,15 +561,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/audits/:id/close", async (req: AuthRequest, res) => {
+  app.post("/api/audits/:id/close", async (req, res) => {
     try {
-      if (!req.user) {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
-      if (req.user.role !== 'master_admin' && req.user.role !== 'admin') {
-        return res.status(403).json({ message: "Only admins can close audits" });
-      }
-      const audit = await storage.closeAudit(req.params.id, req.user.tenantId);
+      const audit = await storage.closeAudit(req.params.id, null);
       if (!audit) {
         return res.status(404).json({ message: "Audit not found" });
       }
@@ -768,7 +721,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Leads
-  app.get("/api/leads", authenticateToken, async (req: AuthRequest, res) => {
+  app.get("/api/leads", async (req, res) => {
     try {
       const { status, assignedTo } = req.query;
       let leads;
@@ -785,7 +738,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/leads/:id", authenticateToken, async (req: AuthRequest, res) => {
+  app.get("/api/leads/:id", async (req, res) => {
     try {
       const lead = await storage.getLead(req.params.id);
       if (!lead) {
@@ -797,12 +750,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/leads", authenticateToken, async (req: AuthRequest, res) => {
+  app.post("/api/leads", async (req, res) => {
     try {
-      if (!req.user) {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
-      const dataWithTenant = { ...req.body, tenantId: req.user.tenantId };
+      const dataWithTenant = { ...req.body, tenantId: null };
       const validated = insertLeadSchema.parse(dataWithTenant);
       const lead = await storage.createLead(validated);
       res.status(201).json(lead);
@@ -812,7 +762,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/leads/:id", authenticateToken, async (req: AuthRequest, res) => {
+  app.put("/api/leads/:id", async (req, res) => {
     try {
       const validated = insertLeadSchema.partial().parse(req.body);
       const lead = await storage.updateLead(req.params.id, validated);
@@ -825,7 +775,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/leads/:id", authenticateToken, async (req: AuthRequest, res) => {
+  app.delete("/api/leads/:id", async (req, res) => {
     try {
       const deleted = await storage.deleteLead(req.params.id);
       if (!deleted) {
@@ -838,15 +788,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Lead Workflow Transitions
-  app.post("/api/leads/:id/qualify", async (req: AuthRequest, res) => {
+  app.post("/api/leads/:id/qualify", async (req, res) => {
     try {
-      if (!req.user) {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
-      if (req.user.role !== 'master_admin' && req.user.role !== 'admin') {
-        return res.status(403).json({ message: "Only admins can qualify leads" });
-      }
-      const lead = await storage.qualifyLead(req.params.id, req.user.tenantId);
+      const lead = await storage.qualifyLead(req.params.id, null);
       if (!lead) {
         return res.status(404).json({ message: "Lead not found" });
       }
@@ -856,15 +800,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/leads/:id/start-progress", async (req: AuthRequest, res) => {
+  app.post("/api/leads/:id/start-progress", async (req, res) => {
     try {
-      if (!req.user) {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
-      if (req.user.role !== 'master_admin' && req.user.role !== 'admin') {
-        return res.status(403).json({ message: "Only admins can start lead progress" });
-      }
-      const lead = await storage.startLeadProgress(req.params.id, req.user.tenantId);
+      const lead = await storage.startLeadProgress(req.params.id, null);
       if (!lead) {
         return res.status(404).json({ message: "Lead not found" });
       }
@@ -874,15 +812,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/leads/:id/convert", async (req: AuthRequest, res) => {
+  app.post("/api/leads/:id/convert", async (req, res) => {
     try {
-      if (!req.user) {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
-      if (req.user.role !== 'master_admin' && req.user.role !== 'admin') {
-        return res.status(403).json({ message: "Only admins can convert leads" });
-      }
-      const lead = await storage.convertLead(req.params.id, req.user.tenantId);
+      const lead = await storage.convertLead(req.params.id, null);
       if (!lead) {
         return res.status(404).json({ message: "Lead not found" });
       }
@@ -892,15 +824,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/leads/:id/close", async (req: AuthRequest, res) => {
+  app.post("/api/leads/:id/close", async (req, res) => {
     try {
-      if (!req.user) {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
-      if (req.user.role !== 'master_admin' && req.user.role !== 'admin') {
-        return res.status(403).json({ message: "Only admins can close leads" });
-      }
-      const lead = await storage.closeLead(req.params.id, req.user.tenantId);
+      const lead = await storage.closeLead(req.params.id, null);
       if (!lead) {
         return res.status(404).json({ message: "Lead not found" });
       }

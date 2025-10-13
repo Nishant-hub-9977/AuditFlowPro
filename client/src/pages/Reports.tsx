@@ -3,7 +3,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { TrendingUp, Users, BarChart3, PieChart as PieChartIcon, DollarSign, Download } from "lucide-react";
-import { useAuth } from "@/lib/authContext";
 
 const CHART_COLORS = [
   'hsl(var(--chart-1))',
@@ -30,8 +29,6 @@ interface LeadReports {
 }
 
 export default function Reports() {
-  const { accessToken } = useAuth();
-
   const { data: auditReports, isLoading: auditLoading } = useQuery<AuditReports>({
     queryKey: ['/api/reports/audits'],
   });
@@ -44,11 +41,7 @@ export default function Reports() {
 
   const handleExportAudits = async () => {
     try {
-      const response = await fetch('/api/reports/audits/export/csv', {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-        },
-      });
+      const response = await fetch('/api/reports/audits/export/csv');
       
       if (!response.ok) throw new Error('Export failed');
       
@@ -68,11 +61,7 @@ export default function Reports() {
 
   const handleExportLeads = async () => {
     try {
-      const response = await fetch('/api/reports/leads/export/csv', {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-        },
-      });
+      const response = await fetch('/api/reports/leads/export/csv');
       
       if (!response.ok) throw new Error('Export failed');
       

@@ -14,7 +14,6 @@ import { format } from "date-fns";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/lib/authContext";
 
 interface LeadDetailDialogProps {
   lead: Lead | null;
@@ -23,7 +22,6 @@ interface LeadDetailDialogProps {
 }
 
 export function LeadDetailDialog({ lead, open, onOpenChange }: LeadDetailDialogProps) {
-  const { user } = useAuth();
   const { toast } = useToast();
 
   const qualifyMutation = useMutation({
@@ -121,10 +119,10 @@ export function LeadDetailDialog({ lead, open, onOpenChange }: LeadDetailDialogP
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
   };
 
-  const canQualify = lead.status === 'new' && (user?.role === 'admin' || user?.role === 'master_admin');
-  const canStartProgress = lead.status === 'qualified' && (user?.role === 'admin' || user?.role === 'master_admin');
-  const canConvert = lead.status === 'in_progress' && (user?.role === 'admin' || user?.role === 'master_admin');
-  const canClose = (lead.status !== 'converted' && lead.status !== 'closed') && (user?.role === 'admin' || user?.role === 'master_admin');
+  const canQualify = lead.status === 'new';
+  const canStartProgress = lead.status === 'qualified';
+  const canConvert = lead.status === 'in_progress';
+  const canClose = (lead.status !== 'converted' && lead.status !== 'closed');
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

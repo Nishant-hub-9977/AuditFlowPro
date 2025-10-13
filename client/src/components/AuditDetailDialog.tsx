@@ -14,7 +14,6 @@ import { format } from "date-fns";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/lib/authContext";
 
 interface AuditDetailDialogProps {
   audit: Audit | null;
@@ -23,7 +22,6 @@ interface AuditDetailDialogProps {
 }
 
 export function AuditDetailDialog({ audit, open, onOpenChange }: AuditDetailDialogProps) {
-  const { user } = useAuth();
   const { toast } = useToast();
 
   const submitForReviewMutation = useMutation({
@@ -96,9 +94,9 @@ export function AuditDetailDialog({ audit, open, onOpenChange }: AuditDetailDial
   };
 
   const canSubmitForReview = audit.status === 'draft';
-  const canApprove = (user?.role === 'admin' || user?.role === 'master_admin') && audit.status === 'review';
-  const canReject = (user?.role === 'admin' || user?.role === 'master_admin') && audit.status === 'review';
-  const canClose = (user?.role === 'admin' || user?.role === 'master_admin') && audit.status === 'approved';
+  const canApprove = audit.status === 'review';
+  const canReject = audit.status === 'review';
+  const canClose = audit.status === 'approved';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
