@@ -17,6 +17,9 @@ const ToastViewport = React.forwardRef<
       "fixed top-0 z-[100] flex max-h-screen w-full flex-col-reverse p-4 sm:bottom-0 sm:right-0 sm:top-auto sm:flex-col md:max-w-[420px]",
       className
     )}
+    role="region"
+    aria-live="polite"
+    aria-label="Notifications"
     {...props}
   />
 ))
@@ -47,6 +50,8 @@ const Toast = React.forwardRef<
     <ToastPrimitives.Root
       ref={ref}
       className={cn(toastVariants({ variant }), className)}
+      role="status"
+      aria-live="polite"
       {...props}
     />
   )

@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -51,7 +52,7 @@ interface CreateLeadDialogProps {
 }
 
 export function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) {
-  const { toast } = useToast();
+  const { success: showSuccessToast, error: showErrorToast } = useToast();
 
   const { data: industries = [] } = useQuery<Industry[]>({
     queryKey: ["/api/industries"],
@@ -85,18 +86,17 @@ export function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) 
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
-      toast({
-        title: "Success",
-        description: "Lead created successfully",
+      showSuccessToast({
+        title: "Lead created",
+        description: "The lead is now ready for assignment.",
       });
       form.reset();
       onOpenChange(false);
     },
     onError: (error: any) => {
-      toast({
+      showErrorToast({
         title: "Error",
         description: error.message || "Failed to create lead",
-        variant: "destructive",
       });
     },
   });
@@ -104,6 +104,15 @@ export function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) 
   const handleSubmit = (data: LeadFormData) => {
     createLeadMutation.mutate(data);
   };
+
+  useEffect(() => {
+    if (open) {
+      form.reset({
+        ...form.getValues(),
+        leadNumber: `LEAD-${Date.now()}`,
+      });
+    }
+  }, [open, form]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

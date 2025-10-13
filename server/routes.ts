@@ -1,6 +1,8 @@
-import type { Express } from "express";
+import type { Express, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 import { 
   insertUserSchema,
   insertAuditSchema, 
@@ -14,12 +16,26 @@ import {
   insertBusinessIntelligenceSchema,
   insertFileSchema,
   insertFollowUpActionSchema,
+  tenants,
 } from "@shared/schema";
 import authRoutes from "./authRoutes";
-import { hashPassword } from "./auth";
+import { authenticateToken, authorizeRoles, type AuthRequest, hashPassword } from "./auth";
 
 // Default tenant ID for no-auth mode
 const DEFAULT_TENANT_ID = "00000000-0000-0000-0000-000000000001";
+
+function getTenantFromLocals(res: Response): string {
+  return (res.locals.tenantId as string) ?? DEFAULT_TENANT_ID;
+}
+
+function getUserRoleFromLocals(res: Response): string {
+  return (res.locals.userRole as string) ?? "auditor";
+}
+
+function getUserIdFromLocals(res: Response): string | null {
+  const value = res.locals.userId as string | null | undefined;
+  return value ?? null;
+}
 
 // CSV escaping utility
 function escapeCSVField(field: string | number): string {
@@ -39,24 +55,94 @@ function escapeCSVField(field: string | number): string {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  
   // Auth routes (public)
   app.use("/api/auth", authRoutes);
+
+  app.use((req, res, next) => {
+    if (!req.path.startsWith("/api") || req.path.startsWith("/api/auth")) {
+      return next();
+    }
+
+    return authenticateToken(req as AuthRequest, res, () => {
+      const authReq = req as AuthRequest;
+      res.locals.tenantId = authReq.user?.tenantId ?? DEFAULT_TENANT_ID;
+      res.locals.userRole = authReq.user?.role ?? "auditor";
+      res.locals.userId = authReq.user?.userId ?? null;
+      next();
+    });
+  });
   
   // Dashboard Stats
   app.get("/api/dashboard/stats", async (req, res) => {
     try {
-      const stats = await storage.getDashboardStats(null);
+      const tenantId = getTenantFromLocals(res);
+      const stats = await storage.getDashboardStats(tenantId);
       res.json(stats);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch dashboard stats" });
     }
   });
 
+  app.get("/api/settings/overview", async (req, res) => {
+    try {
+      const tenantId = getTenantFromLocals(res);
+
+      const [tenant] = await db
+        .select({
+          id: tenants.id,
+          name: tenants.name,
+          subdomain: tenants.subdomain,
+          createdAt: tenants.createdAt,
+        })
+        .from(tenants)
+        .where(eq(tenants.id, tenantId))
+        .limit(1);
+
+      const users = await storage.getAllUsers(tenantId);
+      const stats = await storage.getDashboardStats(tenantId);
+
+      const sortedUsers = [...users].sort(
+        (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
+      );
+
+      const primaryUser = sortedUsers[0]
+        ? {
+            id: sortedUsers[0].id,
+            fullName: sortedUsers[0].fullName,
+            email: sortedUsers[0].email,
+            role: sortedUsers[0].role,
+            phone: null,
+            createdAt: sortedUsers[0].createdAt.toISOString(),
+          }
+        : null;
+
+      res.json({
+        organization: tenant
+          ? {
+              ...tenant,
+              createdAt:
+                tenant.createdAt instanceof Date
+                  ? tenant.createdAt.toISOString()
+                  : tenant.createdAt,
+            }
+          : null,
+        primaryUser,
+        totals: {
+          users: users.length,
+          audits: stats.totalAudits,
+          leads: stats.totalLeads,
+        },
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch settings overview" });
+    }
+  });
+
   // Reports
   app.get("/api/reports/audits", async (req, res) => {
     try {
-      const reports = await storage.getAuditReports(null);
+      const tenantId = getTenantFromLocals(res);
+      const reports = await storage.getAuditReports(tenantId);
       res.json(reports);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch audit reports" });
@@ -65,7 +151,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/reports/leads", async (req, res) => {
     try {
-      const reports = await storage.getLeadReports(null);
+      const tenantId = getTenantFromLocals(res);
+      const reports = await storage.getLeadReports(tenantId);
       res.json(reports);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch lead reports" });
@@ -75,7 +162,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // CSV Export Endpoints
   app.get("/api/reports/audits/export/csv", async (req, res) => {
     try {
-      const reports = await storage.getAuditReports(null);
+      const tenantId = getTenantFromLocals(res);
+      const reports = await storage.getAuditReports(tenantId);
       
       // Generate CSV for audits by status
       let csv = "Audit Reports Export\n\n";
@@ -109,7 +197,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/reports/leads/export/csv", async (req, res) => {
     try {
-      const reports = await storage.getLeadReports(null);
+      const tenantId = getTenantFromLocals(res);
+      const reports = await storage.getLeadReports(tenantId);
       
       // Generate CSV for leads
       let csv = "Lead Reports Export\n\n";
@@ -146,18 +235,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Users
-  app.get("/api/users", async (req, res) => {
+  app.get("/api/users", authorizeRoles("master_admin", "admin"), async (req, res) => {
     try {
-      const users = await storage.getAllUsers(null);
+      const tenantId = getTenantFromLocals(res);
+      const users = await storage.getAllUsers(tenantId);
       res.json(users);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch users" });
     }
   });
 
-  app.get("/api/users/:id", async (req, res) => {
+  app.get("/api/users/:id", authorizeRoles("master_admin", "admin"), async (req, res) => {
     try {
-      const user = await storage.getUser(req.params.id, null);
+      const tenantId = getTenantFromLocals(res);
+      const user = await storage.getUser(req.params.id, tenantId);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
@@ -167,14 +258,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/users", async (req, res) => {
+  app.post("/api/users", authorizeRoles("master_admin", "admin"), async (req, res) => {
     try {
+      const tenantId = getTenantFromLocals(res);
       const validated = insertUserSchema.parse(req.body);
       const hashedPassword = await hashPassword(validated.password);
       const user = await storage.createUser({
         ...validated,
         password: hashedPassword,
-        tenantId: DEFAULT_TENANT_ID,
+        tenantId,
       });
       res.status(201).json(user);
     } catch (error) {
@@ -182,8 +274,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/users/:id", async (req, res) => {
+  app.put("/api/users/:id", authorizeRoles("master_admin", "admin"), async (req, res) => {
     try {
+      const tenantId = getTenantFromLocals(res);
       const validated = insertUserSchema.partial().parse(req.body);
       const updateData = { ...validated };
       
@@ -192,7 +285,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         updateData.password = await hashPassword(validated.password);
       }
       
-      const user = await storage.updateUser(req.params.id, null, updateData);
+      const user = await storage.updateUser(req.params.id, tenantId, updateData);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
@@ -202,9 +295,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/users/:id", async (req, res) => {
+  app.delete("/api/users/:id", authorizeRoles("master_admin", "admin"), async (req, res) => {
     try {
-      const deleted = await storage.deleteUser(req.params.id, null);
+      const tenantId = getTenantFromLocals(res);
+      const deleted = await storage.deleteUser(req.params.id, tenantId);
       if (!deleted) {
         return res.status(404).json({ message: "User not found" });
       }
@@ -217,7 +311,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Industries
   app.get("/api/industries", async (req, res) => {
     try {
-      const industries = await storage.getAllIndustries(null);
+      const tenantId = getTenantFromLocals(res);
+      const industries = await storage.getAllIndustries(tenantId);
       res.json(industries);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch industries" });
@@ -226,7 +321,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/industries/:id", async (req, res) => {
     try {
-      const industry = await storage.getIndustry(req.params.id, null);
+      const tenantId = getTenantFromLocals(res);
+      const industry = await storage.getIndustry(req.params.id, tenantId);
       if (!industry) {
         return res.status(404).json({ message: "Industry not found" });
       }
@@ -236,12 +332,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/industries", async (req, res) => {
+  app.post("/api/industries", authorizeRoles("master_admin", "admin"), async (req, res) => {
     try {
+      const tenantId = getTenantFromLocals(res);
       const validated = insertIndustrySchema.parse(req.body);
       const industry = await storage.createIndustry({
         ...validated,
-        tenantId: DEFAULT_TENANT_ID,
+        tenantId,
       });
       res.status(201).json(industry);
     } catch (error) {
@@ -249,10 +346,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/industries/:id", async (req, res) => {
+  app.put("/api/industries/:id", authorizeRoles("master_admin", "admin"), async (req, res) => {
     try {
+      const tenantId = getTenantFromLocals(res);
       const validated = insertIndustrySchema.partial().parse(req.body);
-      const industry = await storage.updateIndustry(req.params.id, null, validated);
+      const industry = await storage.updateIndustry(req.params.id, tenantId, validated);
       if (!industry) {
         return res.status(404).json({ message: "Industry not found" });
       }
@@ -262,9 +360,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/industries/:id", async (req, res) => {
+  app.delete("/api/industries/:id", authorizeRoles("master_admin", "admin"), async (req, res) => {
     try {
-      const deleted = await storage.deleteIndustry(req.params.id, null);
+      const tenantId = getTenantFromLocals(res);
+      const deleted = await storage.deleteIndustry(req.params.id, tenantId);
       if (!deleted) {
         return res.status(404).json({ message: "Industry not found" });
       }
@@ -277,7 +376,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Audit Types
   app.get("/api/audit-types", async (req, res) => {
     try {
-      const auditTypes = await storage.getAllAuditTypes(null);
+      const tenantId = getTenantFromLocals(res);
+      const auditTypes = await storage.getAllAuditTypes(tenantId);
       res.json(auditTypes);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch audit types" });
@@ -286,7 +386,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/audit-types/:id", async (req, res) => {
     try {
-      const auditType = await storage.getAuditType(req.params.id, null);
+      const tenantId = getTenantFromLocals(res);
+      const auditType = await storage.getAuditType(req.params.id, tenantId);
       if (!auditType) {
         return res.status(404).json({ message: "Audit type not found" });
       }
@@ -296,12 +397,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/audit-types", async (req, res) => {
+  app.post("/api/audit-types", authorizeRoles("master_admin", "admin"), async (req, res) => {
     try {
+      const tenantId = getTenantFromLocals(res);
       const validated = insertAuditTypeSchema.parse(req.body);
       const auditType = await storage.createAuditType({
         ...validated,
-        tenantId: DEFAULT_TENANT_ID,
+        tenantId,
       });
       res.status(201).json(auditType);
     } catch (error) {
@@ -309,10 +411,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/audit-types/:id", async (req, res) => {
+  app.put("/api/audit-types/:id", authorizeRoles("master_admin", "admin"), async (req, res) => {
     try {
+      const tenantId = getTenantFromLocals(res);
       const validated = insertAuditTypeSchema.partial().parse(req.body);
-      const auditType = await storage.updateAuditType(req.params.id, null, validated);
+      const auditType = await storage.updateAuditType(req.params.id, tenantId, validated);
       if (!auditType) {
         return res.status(404).json({ message: "Audit type not found" });
       }
@@ -322,9 +425,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/audit-types/:id", async (req, res) => {
+  app.delete("/api/audit-types/:id", authorizeRoles("master_admin", "admin"), async (req, res) => {
     try {
-      const deleted = await storage.deleteAuditType(req.params.id, null);
+      const tenantId = getTenantFromLocals(res);
+      const deleted = await storage.deleteAuditType(req.params.id, tenantId);
       if (!deleted) {
         return res.status(404).json({ message: "Audit type not found" });
       }
@@ -461,14 +565,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Audits
   app.get("/api/audits", async (req, res) => {
     try {
+      const tenantId = getTenantFromLocals(res);
       const { status, auditorId } = req.query;
       let audits;
       if (status) {
-        audits = await storage.getAuditsByStatus(status as string);
+        audits = await storage.getAuditsByStatus(status as string, tenantId);
       } else if (auditorId) {
-        audits = await storage.getAuditsByAuditor(auditorId as string);
+        audits = await storage.getAuditsByAuditor(auditorId as string, tenantId);
       } else {
-        audits = await storage.getAllAudits();
+        audits = await storage.getAllAudits(tenantId);
       }
       res.json(audits);
     } catch (error) {
@@ -478,7 +583,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/audits/:id", async (req, res) => {
     try {
-      const audit = await storage.getAudit(req.params.id);
+      const tenantId = getTenantFromLocals(res);
+      const audit = await storage.getAudit(req.params.id, tenantId);
       if (!audit) {
         return res.status(404).json({ message: "Audit not found" });
       }
@@ -488,8 +594,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/audits", async (req, res) => {
+  app.post("/api/audits", authorizeRoles("master_admin", "admin", "auditor"), async (req, res) => {
     try {
+      const tenantId = getTenantFromLocals(res);
       // Convert auditDate from ISO string to Date object before parsing
       const dataToValidate = {
         ...req.body,
@@ -498,7 +605,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validated = insertAuditSchema.parse(dataToValidate);
       const audit = await storage.createAudit({
         ...validated,
-        tenantId: DEFAULT_TENANT_ID,
+        tenantId,
       });
       res.status(201).json(audit);
     } catch (error: any) {
@@ -507,10 +614,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/audits/:id", async (req, res) => {
+  app.put("/api/audits/:id", authorizeRoles("master_admin", "admin", "auditor"), async (req, res) => {
     try {
+      const tenantId = getTenantFromLocals(res);
       const validated = insertAuditSchema.partial().parse(req.body);
-      const audit = await storage.updateAudit(req.params.id, validated);
+      const audit = await storage.updateAudit(req.params.id, tenantId, validated);
       if (!audit) {
         return res.status(404).json({ message: "Audit not found" });
       }
@@ -520,9 +628,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/audits/:id", async (req, res) => {
+  app.delete("/api/audits/:id", authorizeRoles("master_admin", "admin"), async (req, res) => {
     try {
-      const deleted = await storage.deleteAudit(req.params.id);
+      const tenantId = getTenantFromLocals(res);
+      const deleted = await storage.deleteAudit(req.params.id, tenantId);
       if (!deleted) {
         return res.status(404).json({ message: "Audit not found" });
       }
@@ -533,9 +642,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Audit Workflow Transitions
-  app.post("/api/audits/:id/submit-for-review", async (req, res) => {
+  app.post("/api/audits/:id/submit-for-review", authorizeRoles("auditor", "admin", "master_admin"), async (req, res) => {
     try {
-      const audit = await storage.submitAuditForReview(req.params.id, null);
+      const tenantId = getTenantFromLocals(res);
+      const audit = await storage.submitAuditForReview(req.params.id, tenantId);
       if (!audit) {
         return res.status(404).json({ message: "Audit not found" });
       }
@@ -545,9 +655,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/audits/:id/approve", async (req, res) => {
+  app.post("/api/audits/:id/approve", authorizeRoles("admin", "master_admin"), async (req, res) => {
     try {
-      const audit = await storage.approveAudit(req.params.id, null);
+      const tenantId = getTenantFromLocals(res);
+      const audit = await storage.approveAudit(req.params.id, tenantId);
       if (!audit) {
         return res.status(404).json({ message: "Audit not found" });
       }
@@ -557,9 +668,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/audits/:id/reject", async (req, res) => {
+  app.post("/api/audits/:id/reject", authorizeRoles("admin", "master_admin"), async (req, res) => {
     try {
-      const audit = await storage.rejectAudit(req.params.id, null);
+      const tenantId = getTenantFromLocals(res);
+      const audit = await storage.rejectAudit(req.params.id, tenantId);
       if (!audit) {
         return res.status(404).json({ message: "Audit not found" });
       }
@@ -569,9 +681,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/audits/:id/close", async (req, res) => {
+  app.post("/api/audits/:id/close", authorizeRoles("admin", "master_admin"), async (req, res) => {
     try {
-      const audit = await storage.closeAudit(req.params.id, null);
+      const tenantId = getTenantFromLocals(res);
+      const audit = await storage.closeAudit(req.params.id, tenantId);
       if (!audit) {
         return res.status(404).json({ message: "Audit not found" });
       }
@@ -731,14 +844,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Leads
   app.get("/api/leads", async (req, res) => {
     try {
+      const tenantId = getTenantFromLocals(res);
       const { status, assignedTo } = req.query;
       let leads;
       if (status) {
-        leads = await storage.getLeadsByStatus(status as string);
+        leads = await storage.getLeadsByStatus(status as string, tenantId);
       } else if (assignedTo) {
-        leads = await storage.getLeadsByAssignedUser(assignedTo as string);
+        leads = await storage.getLeadsByAssignedUser(assignedTo as string, tenantId);
       } else {
-        leads = await storage.getAllLeads();
+        leads = await storage.getAllLeads(tenantId);
       }
       res.json(leads);
     } catch (error) {
@@ -748,7 +862,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/leads/:id", async (req, res) => {
     try {
-      const lead = await storage.getLead(req.params.id);
+      const tenantId = getTenantFromLocals(res);
+      const lead = await storage.getLead(req.params.id, tenantId);
       if (!lead) {
         return res.status(404).json({ message: "Lead not found" });
       }
@@ -758,12 +873,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/leads", async (req, res) => {
+  app.post("/api/leads", authorizeRoles("master_admin", "admin", "sales_rep"), async (req, res) => {
     try {
+      const tenantId = getTenantFromLocals(res);
       const validated = insertLeadSchema.parse(req.body);
       const lead = await storage.createLead({
         ...validated,
-        tenantId: DEFAULT_TENANT_ID,
+        tenantId,
       });
       res.status(201).json(lead);
     } catch (error: any) {
@@ -772,10 +888,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/leads/:id", async (req, res) => {
+  app.put("/api/leads/:id", authorizeRoles("master_admin", "admin", "sales_rep"), async (req, res) => {
     try {
+      const tenantId = getTenantFromLocals(res);
       const validated = insertLeadSchema.partial().parse(req.body);
-      const lead = await storage.updateLead(req.params.id, validated);
+      const lead = await storage.updateLead(req.params.id, tenantId, validated);
       if (!lead) {
         return res.status(404).json({ message: "Lead not found" });
       }
@@ -785,9 +902,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/leads/:id", async (req, res) => {
+  app.delete("/api/leads/:id", authorizeRoles("master_admin", "admin"), async (req, res) => {
     try {
-      const deleted = await storage.deleteLead(req.params.id);
+      const tenantId = getTenantFromLocals(res);
+      const deleted = await storage.deleteLead(req.params.id, tenantId);
       if (!deleted) {
         return res.status(404).json({ message: "Lead not found" });
       }
@@ -798,9 +916,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Lead Workflow Transitions
-  app.post("/api/leads/:id/qualify", async (req, res) => {
+  app.post("/api/leads/:id/qualify", authorizeRoles("master_admin", "admin", "sales_rep"), async (req, res) => {
     try {
-      const lead = await storage.qualifyLead(req.params.id, null);
+      const tenantId = getTenantFromLocals(res);
+      const lead = await storage.qualifyLead(req.params.id, tenantId);
       if (!lead) {
         return res.status(404).json({ message: "Lead not found" });
       }
@@ -810,9 +929,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/leads/:id/start-progress", async (req, res) => {
+  app.post("/api/leads/:id/start-progress", authorizeRoles("master_admin", "admin", "sales_rep"), async (req, res) => {
     try {
-      const lead = await storage.startLeadProgress(req.params.id, null);
+      const tenantId = getTenantFromLocals(res);
+      const lead = await storage.startLeadProgress(req.params.id, tenantId);
       if (!lead) {
         return res.status(404).json({ message: "Lead not found" });
       }
@@ -822,9 +942,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/leads/:id/convert", async (req, res) => {
+  app.post("/api/leads/:id/convert", authorizeRoles("master_admin", "admin", "sales_rep"), async (req, res) => {
     try {
-      const lead = await storage.convertLead(req.params.id, null);
+      const tenantId = getTenantFromLocals(res);
+      const lead = await storage.convertLead(req.params.id, tenantId);
       if (!lead) {
         return res.status(404).json({ message: "Lead not found" });
       }
@@ -834,9 +955,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/leads/:id/close", async (req, res) => {
+  app.post("/api/leads/:id/close", authorizeRoles("master_admin", "admin"), async (req, res) => {
     try {
-      const lead = await storage.closeLead(req.params.id, null);
+      const tenantId = getTenantFromLocals(res);
+      const lead = await storage.closeLead(req.params.id, tenantId);
       if (!lead) {
         return res.status(404).json({ message: "Lead not found" });
       }

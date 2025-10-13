@@ -2,8 +2,12 @@ import { StatCard } from "@/components/StatCard";
 import { AuditStatusChart } from "@/components/AuditStatusChart";
 import { LeadConversionChart } from "@/components/LeadConversionChart";
 import { RecentActivityTable } from "@/components/RecentActivityTable";
+import { useEffect } from "react";
 import { ClipboardCheck, Users, TrendingUp, CheckCircle2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
 interface DashboardStats {
   totalAudits: number;
@@ -13,9 +17,32 @@ interface DashboardStats {
 }
 
 export default function Dashboard() {
-  const { data: stats, isLoading } = useQuery<DashboardStats>({
+  const { error: showErrorToast } = useToast();
+
+  const {
+    data: stats,
+    isLoading,
+    isError,
+    error: statsError,
+    refetch,
+  } = useQuery<DashboardStats, Error>({
     queryKey: ["/api/dashboard/stats"],
+    queryFn: async () => {
+      const res = await apiRequest("GET", "/api/dashboard/stats");
+      return (await res.json()) as DashboardStats;
+    },
+    retry: 1,
+    retryDelay: 1500,
   });
+
+  useEffect(() => {
+    if (isError && statsError) {
+      showErrorToast({
+        title: "Unable to load dashboard",
+        description: statsError.message || "Unexpected error",
+      });
+    }
+  }, [isError, showErrorToast, statsError]);
 
   return (
     <div className="space-y-6">
@@ -29,7 +56,7 @@ export default function Dashboard() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="Total Audits"
           value={isLoading ? "..." : stats?.totalAudits.toString() || "0"}
@@ -60,14 +87,26 @@ export default function Dashboard() {
         />
       </div>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <AuditStatusChart />
-        <LeadConversionChart />
-      </div>
+      {isError ? (
+        <div className="rounded-lg border border-dashed border-destructive/60 bg-destructive/5 p-6 text-center">
+          <p className="font-medium text-destructive">We couldn't load dashboard insights.</p>
+          <p className="mt-1 text-sm text-destructive/80">Check your connection or try again.</p>
+          <Button className="mt-4" variant="outline" onClick={() => refetch()}>
+            Retry loading data
+          </Button>
+        </div>
+      ) : (
+        <>
+          {/* Charts */}
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <AuditStatusChart />
+            <LeadConversionChart />
+          </div>
 
-      {/* Recent Activity */}
-      <RecentActivityTable />
+          {/* Recent Activity */}
+          <RecentActivityTable />
+        </>
+      )}
     </div>
   );
 }

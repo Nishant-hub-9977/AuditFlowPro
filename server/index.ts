@@ -1,10 +1,17 @@
 import express, { type Request, Response, NextFunction } from "express";
+import cors from "cors";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Enable CORS in development so Vite (frontend) can call the API on a different port
+if (process.env.NODE_ENV === "development") {
+  const viteOrigin = process.env.VITE_API_BASE_URL ? new URL(process.env.VITE_API_BASE_URL).origin : "http://localhost:5173";
+  app.use(cors({ origin: viteOrigin, credentials: true }));
+}
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -61,11 +68,13 @@ app.use((req, res, next) => {
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
   const port = parseInt(process.env.PORT || '5000', 10);
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
+  const listenOpts: any = { port, host: "0.0.0.0" };
+  // reusePort is not supported on Windows; only enable on non-win platforms
+  if (process.platform !== "win32") {
+    listenOpts.reusePort = true;
+  }
+
+  server.listen(listenOpts, () => {
     log(`serving on port ${port}`);
   });
 })();

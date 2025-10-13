@@ -1,8 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { TrendingUp, Users, BarChart3, PieChart as PieChartIcon, DollarSign, Download } from "lucide-react";
+import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { TrendingUp, Users, BarChart3, DollarSign, Download } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
 
 const CHART_COLORS = [
   'hsl(var(--chart-1))',
@@ -30,59 +31,55 @@ interface LeadReports {
 
 export default function Reports() {
   const { data: auditReports, isLoading: auditLoading } = useQuery<AuditReports>({
-    queryKey: ['/api/reports/audits'],
+    queryKey: ["/api/reports/audits"],
   });
 
   const { data: leadReports, isLoading: leadLoading } = useQuery<LeadReports>({
-    queryKey: ['/api/reports/leads'],
+    queryKey: ["/api/reports/leads"],
   });
 
   const isLoading = auditLoading || leadLoading;
 
   const handleExportAudits = async () => {
     try {
-      const response = await fetch('/api/reports/audits/export/csv');
-      
-      if (!response.ok) throw new Error('Export failed');
-      
+      const response = await apiRequest("GET", "/api/reports/audits/export/csv");
+
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
-      a.download = 'audit-reports.csv';
+      a.download = "audit-reports.csv";
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
     } catch (error) {
-      console.error('Failed to export audit reports:', error);
+      console.error("Failed to export audit reports:", error);
     }
   };
 
   const handleExportLeads = async () => {
     try {
-      const response = await fetch('/api/reports/leads/export/csv');
-      
-      if (!response.ok) throw new Error('Export failed');
-      
+      const response = await apiRequest("GET", "/api/reports/leads/export/csv");
+
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
-      a.download = 'lead-reports.csv';
+      a.download = "lead-reports.csv";
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
     } catch (error) {
-      console.error('Failed to export lead reports:', error);
+      console.error("Failed to export lead reports:", error);
     }
   };
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(value);
@@ -90,9 +87,9 @@ export default function Reports() {
 
   const formatStatus = (status: string) => {
     return status
-      .split('_')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
+      .split("_")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
   };
 
   const formatPriority = (priority: string) => {

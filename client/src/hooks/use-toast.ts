@@ -5,6 +5,8 @@ import type {
   ToastProps,
 } from "@/components/ui/toast"
 
+const DEFAULT_DURATION = 4000
+
 const TOAST_LIMIT = 1
 const TOAST_REMOVE_DELAY = 1000000
 
@@ -155,6 +157,7 @@ function toast({ ...props }: Toast) {
       ...props,
       id,
       open: true,
+        duration: props.duration ?? DEFAULT_DURATION,
       onOpenChange: (open) => {
         if (!open) dismiss()
       },
@@ -181,9 +184,31 @@ function useToast() {
     }
   }, [state])
 
+  const success = React.useCallback(
+    (options: Toast) =>
+      toast({
+        ...options,
+        variant: options.variant ?? "default",
+        duration: options.duration ?? DEFAULT_DURATION,
+      }),
+    [],
+  )
+
+  const error = React.useCallback(
+    (options: Toast) =>
+      toast({
+        ...options,
+        variant: "destructive",
+        duration: options.duration ?? DEFAULT_DURATION,
+      }),
+    [],
+  )
+
   return {
     ...state,
     toast,
+    success,
+    error,
     dismiss: (toastId?: string) => dispatch({ type: "DISMISS_TOAST", toastId }),
   }
 }

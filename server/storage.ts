@@ -56,13 +56,13 @@ export interface IStorage {
   deleteChecklistItem(id: string): Promise<boolean>;
 
   // Audits
-  getAudit(id: string): Promise<Audit | undefined>;
+  getAudit(id: string, tenantId: string): Promise<Audit | undefined>;
   createAudit(audit: InsertAudit): Promise<Audit>;
-  getAllAudits(): Promise<Audit[]>;
-  getAuditsByStatus(status: string): Promise<Audit[]>;
-  getAuditsByAuditor(auditorId: string): Promise<Audit[]>;
-  updateAudit(id: string, audit: Partial<InsertAudit>): Promise<Audit | undefined>;
-  deleteAudit(id: string): Promise<boolean>;
+  getAllAudits(tenantId: string): Promise<Audit[]>;
+  getAuditsByStatus(status: string, tenantId: string): Promise<Audit[]>;
+  getAuditsByAuditor(auditorId: string, tenantId: string): Promise<Audit[]>;
+  updateAudit(id: string, tenantId: string, audit: Partial<InsertAudit>): Promise<Audit | undefined>;
+  deleteAudit(id: string, tenantId: string): Promise<boolean>;
   
   // Audit Workflow Transitions
   submitAuditForReview(id: string, tenantId: string): Promise<Audit | undefined>;
@@ -92,13 +92,13 @@ export interface IStorage {
   deleteBusinessIntelligence(id: string): Promise<boolean>;
 
   // Leads
-  getLead(id: string): Promise<Lead | undefined>;
+  getLead(id: string, tenantId: string): Promise<Lead | undefined>;
   createLead(lead: InsertLead): Promise<Lead>;
-  getAllLeads(): Promise<Lead[]>;
-  getLeadsByStatus(status: string): Promise<Lead[]>;
-  getLeadsByAssignedUser(userId: string): Promise<Lead[]>;
-  updateLead(id: string, lead: Partial<InsertLead>): Promise<Lead | undefined>;
-  deleteLead(id: string): Promise<boolean>;
+  getAllLeads(tenantId: string): Promise<Lead[]>;
+  getLeadsByStatus(status: string, tenantId: string): Promise<Lead[]>;
+  getLeadsByAssignedUser(userId: string, tenantId: string): Promise<Lead[]>;
+  updateLead(id: string, tenantId: string, lead: Partial<InsertLead>): Promise<Lead | undefined>;
+  deleteLead(id: string, tenantId: string): Promise<boolean>;
   
   // Lead Workflow Transitions
   qualifyLead(id: string, tenantId: string): Promise<Lead | undefined>;
@@ -316,8 +316,9 @@ export class DbStorage implements IStorage {
   }
 
   // Audits
-  async getAudit(id: string): Promise<Audit | undefined> {
-    const [audit] = await db.select().from(schema.audits).where(eq(schema.audits.id, id));
+  async getAudit(id: string, tenantId: string): Promise<Audit | undefined> {
+    const [audit] = await db.select().from(schema.audits)
+      .where(and(eq(schema.audits.id, id), eq(schema.audits.tenantId, tenantId)));
     return audit;
   }
 
@@ -326,39 +327,42 @@ export class DbStorage implements IStorage {
     return audit;
   }
 
-  async getAllAudits(): Promise<Audit[]> {
-    return await db.select().from(schema.audits).orderBy(desc(schema.audits.auditDate));
-  }
-
-  async getAuditsByStatus(status: string): Promise<Audit[]> {
+  async getAllAudits(tenantId: string): Promise<Audit[]> {
     return await db.select().from(schema.audits)
-      .where(eq(schema.audits.status, status))
+      .where(eq(schema.audits.tenantId, tenantId))
       .orderBy(desc(schema.audits.auditDate));
   }
 
-  async getAuditsByAuditor(auditorId: string): Promise<Audit[]> {
+  async getAuditsByStatus(status: string, tenantId: string): Promise<Audit[]> {
     return await db.select().from(schema.audits)
-      .where(eq(schema.audits.auditorId, auditorId))
+      .where(and(eq(schema.audits.status, status), eq(schema.audits.tenantId, tenantId)))
       .orderBy(desc(schema.audits.auditDate));
   }
 
-  async updateAudit(id: string, audit: Partial<InsertAudit>): Promise<Audit | undefined> {
+  async getAuditsByAuditor(auditorId: string, tenantId: string): Promise<Audit[]> {
+    return await db.select().from(schema.audits)
+      .where(and(eq(schema.audits.auditorId, auditorId), eq(schema.audits.tenantId, tenantId)))
+      .orderBy(desc(schema.audits.auditDate));
+  }
+
+  async updateAudit(id: string, tenantId: string, audit: Partial<InsertAudit>): Promise<Audit | undefined> {
     const [updated] = await db.update(schema.audits)
       .set({ ...audit, updatedAt: new Date() })
-      .where(eq(schema.audits.id, id))
+      .where(and(eq(schema.audits.id, id), eq(schema.audits.tenantId, tenantId)))
       .returning();
     return updated;
   }
 
-  async deleteAudit(id: string): Promise<boolean> {
-    const result = await db.delete(schema.audits).where(eq(schema.audits.id, id));
+  async deleteAudit(id: string, tenantId: string): Promise<boolean> {
+    const result = await db.delete(schema.audits)
+      .where(and(eq(schema.audits.id, id), eq(schema.audits.tenantId, tenantId)));
     return (result.rowCount ?? 0) > 0;
   }
 
   // Audit Workflow Transitions
   async submitAuditForReview(id: string, tenantId: string): Promise<Audit | undefined> {
-    const audit = await this.getAudit(id);
-    if (!audit || audit.tenantId !== tenantId) return undefined;
+  const audit = await this.getAudit(id, tenantId);
+  if (!audit) return undefined;
     if (audit.status !== 'draft') {
       throw new Error('Only draft audits can be submitted for review');
     }
@@ -370,8 +374,8 @@ export class DbStorage implements IStorage {
   }
 
   async approveAudit(id: string, tenantId: string): Promise<Audit | undefined> {
-    const audit = await this.getAudit(id);
-    if (!audit || audit.tenantId !== tenantId) return undefined;
+  const audit = await this.getAudit(id, tenantId);
+  if (!audit) return undefined;
     if (audit.status !== 'review') {
       throw new Error('Only audits in review can be approved');
     }
@@ -383,8 +387,8 @@ export class DbStorage implements IStorage {
   }
 
   async rejectAudit(id: string, tenantId: string): Promise<Audit | undefined> {
-    const audit = await this.getAudit(id);
-    if (!audit || audit.tenantId !== tenantId) return undefined;
+  const audit = await this.getAudit(id, tenantId);
+  if (!audit) return undefined;
     if (audit.status !== 'review') {
       throw new Error('Only audits in review can be rejected');
     }
@@ -396,8 +400,8 @@ export class DbStorage implements IStorage {
   }
 
   async closeAudit(id: string, tenantId: string): Promise<Audit | undefined> {
-    const audit = await this.getAudit(id);
-    if (!audit || audit.tenantId !== tenantId) return undefined;
+  const audit = await this.getAudit(id, tenantId);
+  if (!audit) return undefined;
     if (audit.status !== 'approved') {
       throw new Error('Only approved audits can be closed');
     }
@@ -499,8 +503,9 @@ export class DbStorage implements IStorage {
   }
 
   // Leads
-  async getLead(id: string): Promise<Lead | undefined> {
-    const [lead] = await db.select().from(schema.leads).where(eq(schema.leads.id, id));
+  async getLead(id: string, tenantId: string): Promise<Lead | undefined> {
+    const [lead] = await db.select().from(schema.leads)
+      .where(and(eq(schema.leads.id, id), eq(schema.leads.tenantId, tenantId)));
     return lead;
   }
 
@@ -509,39 +514,42 @@ export class DbStorage implements IStorage {
     return lead;
   }
 
-  async getAllLeads(): Promise<Lead[]> {
-    return await db.select().from(schema.leads).orderBy(desc(schema.leads.createdAt));
-  }
-
-  async getLeadsByStatus(status: string): Promise<Lead[]> {
+  async getAllLeads(tenantId: string): Promise<Lead[]> {
     return await db.select().from(schema.leads)
-      .where(eq(schema.leads.status, status))
+      .where(eq(schema.leads.tenantId, tenantId))
       .orderBy(desc(schema.leads.createdAt));
   }
 
-  async getLeadsByAssignedUser(userId: string): Promise<Lead[]> {
+  async getLeadsByStatus(status: string, tenantId: string): Promise<Lead[]> {
     return await db.select().from(schema.leads)
-      .where(eq(schema.leads.assignedTo, userId))
+      .where(and(eq(schema.leads.status, status), eq(schema.leads.tenantId, tenantId)))
       .orderBy(desc(schema.leads.createdAt));
   }
 
-  async updateLead(id: string, lead: Partial<InsertLead>): Promise<Lead | undefined> {
+  async getLeadsByAssignedUser(userId: string, tenantId: string): Promise<Lead[]> {
+    return await db.select().from(schema.leads)
+      .where(and(eq(schema.leads.assignedTo, userId), eq(schema.leads.tenantId, tenantId)))
+      .orderBy(desc(schema.leads.createdAt));
+  }
+
+  async updateLead(id: string, tenantId: string, lead: Partial<InsertLead>): Promise<Lead | undefined> {
     const [updated] = await db.update(schema.leads)
       .set({ ...lead, updatedAt: new Date() })
-      .where(eq(schema.leads.id, id))
+      .where(and(eq(schema.leads.id, id), eq(schema.leads.tenantId, tenantId)))
       .returning();
     return updated;
   }
 
-  async deleteLead(id: string): Promise<boolean> {
-    const result = await db.delete(schema.leads).where(eq(schema.leads.id, id));
+  async deleteLead(id: string, tenantId: string): Promise<boolean> {
+    const result = await db.delete(schema.leads)
+      .where(and(eq(schema.leads.id, id), eq(schema.leads.tenantId, tenantId)));
     return (result.rowCount ?? 0) > 0;
   }
 
   // Lead Workflow Transitions
   async qualifyLead(id: string, tenantId: string): Promise<Lead | undefined> {
-    const lead = await this.getLead(id);
-    if (!lead || lead.tenantId !== tenantId) return undefined;
+  const lead = await this.getLead(id, tenantId);
+  if (!lead) return undefined;
     if (lead.status !== 'new') {
       throw new Error('Only new leads can be qualified');
     }
@@ -553,8 +561,8 @@ export class DbStorage implements IStorage {
   }
 
   async startLeadProgress(id: string, tenantId: string): Promise<Lead | undefined> {
-    const lead = await this.getLead(id);
-    if (!lead || lead.tenantId !== tenantId) return undefined;
+  const lead = await this.getLead(id, tenantId);
+  if (!lead) return undefined;
     if (lead.status !== 'qualified') {
       throw new Error('Only qualified leads can be moved to in progress');
     }
@@ -566,8 +574,8 @@ export class DbStorage implements IStorage {
   }
 
   async convertLead(id: string, tenantId: string): Promise<Lead | undefined> {
-    const lead = await this.getLead(id);
-    if (!lead || lead.tenantId !== tenantId) return undefined;
+  const lead = await this.getLead(id, tenantId);
+  if (!lead) return undefined;
     if (lead.status !== 'in_progress') {
       throw new Error('Only leads in progress can be converted');
     }
@@ -579,8 +587,8 @@ export class DbStorage implements IStorage {
   }
 
   async closeLead(id: string, tenantId: string): Promise<Lead | undefined> {
-    const lead = await this.getLead(id);
-    if (!lead || lead.tenantId !== tenantId) return undefined;
+  const lead = await this.getLead(id, tenantId);
+  if (!lead) return undefined;
     if (lead.status === 'converted' || lead.status === 'closed') {
       throw new Error('Cannot close a converted or already closed lead');
     }
@@ -733,18 +741,22 @@ export class DbStorage implements IStorage {
       .where(eq(schema.audits.tenantId, tenantId));
 
     return {
-      auditsByStatus: auditsByStatus.map(row => ({
-        status: row.status || 'unknown',
-        count: Number(row.count),
+      auditsByStatus: auditsByStatus.map(({ status, count }: { status: string | null; count: number }) => ({
+        status: status || "unknown",
+        count: Number(count),
       })),
-      auditsByIndustry: auditsByIndustry.map(row => ({
-        industryName: row.industryName || 'Unknown',
-        count: Number(row.count),
-      })),
-      auditsByType: auditsByType.map(row => ({
-        auditTypeName: row.auditTypeName || 'Unknown',
-        count: Number(row.count),
-      })),
+      auditsByIndustry: auditsByIndustry.map(
+        ({ industryName, count }: { industryName: string | null; count: number }) => ({
+          industryName: industryName || "Unknown",
+          count: Number(count),
+        }),
+      ),
+      auditsByType: auditsByType.map(
+        ({ auditTypeName, count }: { auditTypeName: string | null; count: number }) => ({
+          auditTypeName: auditTypeName || "Unknown",
+          count: Number(count),
+        }),
+      ),
       totalAudits: Number(totalResult.count),
     };
   }
@@ -814,18 +826,22 @@ export class DbStorage implements IStorage {
     const conversionRate = totalLeads > 0 ? (convertedLeads / totalLeads) * 100 : 0;
 
     return {
-      leadsByStatus: leadsByStatus.map(row => ({
-        status: row.status || 'unknown',
-        count: Number(row.count),
+      leadsByStatus: leadsByStatus.map(({ status, count }: { status: string | null; count: number }) => ({
+        status: status || "unknown",
+        count: Number(count),
       })),
-      leadsByIndustry: leadsByIndustry.map(row => ({
-        industryName: row.industryName || 'Unknown',
-        count: Number(row.count),
-      })),
-      leadsByPriority: leadsByPriority.map(row => ({
-        priority: row.priority || 'unknown',
-        count: Number(row.count),
-      })),
+      leadsByIndustry: leadsByIndustry.map(
+        ({ industryName, count }: { industryName: string | null; count: number }) => ({
+          industryName: industryName || "Unknown",
+          count: Number(count),
+        }),
+      ),
+      leadsByPriority: leadsByPriority.map(
+        ({ priority, count }: { priority: string | null; count: number }) => ({
+          priority: priority || "unknown",
+          count: Number(count),
+        }),
+      ),
       conversionRate: Number(conversionRate.toFixed(2)),
       totalEstimatedValue: Number(valueResult.total) || 0,
       totalLeads,

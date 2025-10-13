@@ -66,32 +66,33 @@ export default function Leads() {
             Track and convert leads from audits
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2 justify-end">
           <Button onClick={() => setIsCreateOpen(true)} data-testid="button-add-lead">
-            <Plus className="h-4 w-4 mr-2" />
+            <Plus className="h-4 w-4 mr-2" aria-hidden="true" />
             Add Lead
           </Button>
           <Tabs value={view} onValueChange={(v) => setView(v as "kanban" | "table")}>
             <TabsList>
               <TabsTrigger value="kanban" data-testid="button-view-kanban">
-                <LayoutGrid className="h-4 w-4 mr-2" />
+                <LayoutGrid className="h-4 w-4 mr-2" aria-hidden="true" />
                 Kanban
               </TabsTrigger>
               <TabsTrigger value="table" data-testid="button-view-table">
-                <List className="h-4 w-4 mr-2" />
+                <List className="h-4 w-4 mr-2" aria-hidden="true" />
                 Table
               </TabsTrigger>
             </TabsList>
           </Tabs>
-          <Button data-testid="button-create-lead">
-            <Plus className="h-4 w-4 mr-2" />
-            Create Lead
-          </Button>
         </div>
       </div>
 
       {view === "kanban" ? (
-        <LeadKanban />
+        <LeadKanban
+          leads={leads}
+          isLoading={isLoading}
+          onLeadSelect={setSelectedLead}
+          onCreateLead={() => setIsCreateOpen(true)}
+        />
       ) : (
         <>
           {isLoading ? (

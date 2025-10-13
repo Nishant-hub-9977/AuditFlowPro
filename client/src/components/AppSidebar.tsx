@@ -1,3 +1,4 @@
+import type { ComponentType, SVGProps } from "react";
 import {
   LayoutDashboard,
   ClipboardCheck,
@@ -22,7 +23,7 @@ import { Link, useLocation } from "wouter";
 interface NavItem {
   title: string;
   url: string;
-  icon: any;
+  icon: ComponentType<SVGProps<SVGSVGElement>>;
 }
 
 const navItems: NavItem[] = [
@@ -51,6 +52,11 @@ const navItems: NavItem[] = [
     url: "/master-data",
     icon: FolderOpen,
   },
+  {
+    title: "Settings",
+    url: "/settings",
+    icon: Building2,
+  },
 ];
 
 export function AppSidebar() {
@@ -61,7 +67,7 @@ export function AppSidebar() {
       <SidebarHeader className="p-4 border-b border-sidebar-border">
         <div className="flex items-center gap-2">
           <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-            <Building2 className="h-5 w-5 text-primary-foreground" />
+            <Building2 className="h-5 w-5 text-primary-foreground" aria-hidden="true" />
           </div>
           <div>
             <p className="text-sm font-semibold">Audit Flow Pro</p>
@@ -81,8 +87,11 @@ export function AppSidebar() {
                     isActive={location === item.url}
                     data-testid={`sidebar-${item.title.toLowerCase().replace(/\s+/g, '-')}`}
                   >
-                    <Link href={item.url}>
-                      <item.icon className="h-4 w-4" />
+                    <Link
+                      href={item.url}
+                      aria-current={location === item.url ? "page" : undefined}
+                    >
+                      <item.icon className="h-4 w-4" aria-hidden="true" />
                       <span>{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
