@@ -183,21 +183,28 @@ export const insertUserSchema = createInsertSchema(users).omit({
   createdAt: true,
 }).extend({
   role: z.enum(userRoles).default("auditor"),
+  tenantId: z.string().optional(),
 });
 
 export const insertIndustrySchema = createInsertSchema(industries).omit({
   id: true,
   createdAt: true,
+}).extend({
+  tenantId: z.string().optional(),
 });
 
 export const insertAuditTypeSchema = createInsertSchema(auditTypes).omit({
   id: true,
   createdAt: true,
+}).extend({
+  tenantId: z.string().optional(),
 });
 
 export const insertChecklistSchema = createInsertSchema(checklists).omit({
   id: true,
   createdAt: true,
+}).extend({
+  tenantId: z.string().optional(),
 });
 
 export const insertChecklistItemSchema = createInsertSchema(checklistItems).omit({
@@ -209,6 +216,8 @@ export const insertAuditSchema = createInsertSchema(audits).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  tenantId: z.string().optional(),
 });
 
 export const insertAuditChecklistResponseSchema = createInsertSchema(auditChecklistResponses).omit({
@@ -230,6 +239,8 @@ export const insertLeadSchema = createInsertSchema(leads).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  tenantId: z.string().optional(),
 });
 
 export const insertFileSchema = createInsertSchema(files).omit({

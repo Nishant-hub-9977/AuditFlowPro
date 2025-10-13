@@ -6,14 +6,33 @@ import bcrypt from "bcrypt";
 async function seed() {
   console.log("🌱 Seeding database...");
 
+  // Default tenant ID for no-auth mode
+  const DEFAULT_TENANT_ID = "00000000-0000-0000-0000-000000000001";
+
   // Get or create default tenant
   console.log("Getting or creating default tenant...");
+  
+  // First, check if the specific ID exists
   let defaultTenant = await db.select().from(schema.tenants)
-    .where(eq(schema.tenants.subdomain, "default"))
+    .where(eq(schema.tenants.id, DEFAULT_TENANT_ID))
     .limit(1);
 
   if (defaultTenant.length === 0) {
+    // Check if subdomain "default" exists with a different ID
+    const existingDefault = await db.select().from(schema.tenants)
+      .where(eq(schema.tenants.subdomain, "default"))
+      .limit(1);
+    
+    if (existingDefault.length > 0) {
+      // Delete the old tenant (this will cascade delete all related data)
+      console.log("Deleting old default tenant and all related data...");
+      await db.delete(schema.tenants)
+        .where(eq(schema.tenants.subdomain, "default"));
+    }
+    
+    // Create the new tenant with the specific ID
     const [newTenant] = await db.insert(schema.tenants).values({
+      id: DEFAULT_TENANT_ID,
       name: "Default Organization",
       subdomain: "default",
       isActive: true,

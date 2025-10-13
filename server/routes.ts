@@ -18,6 +18,9 @@ import {
 import authRoutes from "./authRoutes";
 import { hashPassword } from "./auth";
 
+// Default tenant ID for no-auth mode
+const DEFAULT_TENANT_ID = "00000000-0000-0000-0000-000000000001";
+
 // CSV escaping utility
 function escapeCSVField(field: string | number): string {
   if (typeof field === 'number') {
@@ -166,12 +169,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/users", async (req, res) => {
     try {
-      const validated = insertUserSchema.omit({ tenantId: true }).parse(req.body);
+      const validated = insertUserSchema.parse(req.body);
       const hashedPassword = await hashPassword(validated.password);
       const user = await storage.createUser({
         ...validated,
         password: hashedPassword,
-        tenantId: null,
+        tenantId: DEFAULT_TENANT_ID,
       });
       res.status(201).json(user);
     } catch (error) {
@@ -181,7 +184,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put("/api/users/:id", async (req, res) => {
     try {
-      const validated = insertUserSchema.omit({ tenantId: true }).partial().parse(req.body);
+      const validated = insertUserSchema.partial().parse(req.body);
       const updateData = { ...validated };
       
       // Hash password if it's being updated
@@ -235,10 +238,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/industries", async (req, res) => {
     try {
-      const validated = insertIndustrySchema.omit({ tenantId: true }).parse(req.body);
+      const validated = insertIndustrySchema.parse(req.body);
       const industry = await storage.createIndustry({
         ...validated,
-        tenantId: null,
+        tenantId: DEFAULT_TENANT_ID,
       });
       res.status(201).json(industry);
     } catch (error) {
@@ -248,7 +251,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put("/api/industries/:id", async (req, res) => {
     try {
-      const validated = insertIndustrySchema.omit({ tenantId: true }).partial().parse(req.body);
+      const validated = insertIndustrySchema.partial().parse(req.body);
       const industry = await storage.updateIndustry(req.params.id, null, validated);
       if (!industry) {
         return res.status(404).json({ message: "Industry not found" });
@@ -295,10 +298,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/audit-types", async (req, res) => {
     try {
-      const validated = insertAuditTypeSchema.omit({ tenantId: true }).parse(req.body);
+      const validated = insertAuditTypeSchema.parse(req.body);
       const auditType = await storage.createAuditType({
         ...validated,
-        tenantId: null,
+        tenantId: DEFAULT_TENANT_ID,
       });
       res.status(201).json(auditType);
     } catch (error) {
@@ -308,7 +311,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put("/api/audit-types/:id", async (req, res) => {
     try {
-      const validated = insertAuditTypeSchema.omit({ tenantId: true }).partial().parse(req.body);
+      const validated = insertAuditTypeSchema.partial().parse(req.body);
       const auditType = await storage.updateAuditType(req.params.id, null, validated);
       if (!auditType) {
         return res.status(404).json({ message: "Audit type not found" });
@@ -359,7 +362,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/checklists", async (req, res) => {
     try {
       const validated = insertChecklistSchema.parse(req.body);
-      const checklist = await storage.createChecklist(validated);
+      const checklist = await storage.createChecklist({
+        ...validated,
+        tenantId: DEFAULT_TENANT_ID,
+      });
       res.status(201).json(checklist);
     } catch (error) {
       res.status(400).json({ message: "Invalid data" });
@@ -484,14 +490,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/audits", async (req, res) => {
     try {
-      const dataWithTenant = { 
-        ...req.body, 
-        tenantId: null,
-        // Convert auditDate from ISO string to Date object
+      // Convert auditDate from ISO string to Date object before parsing
+      const dataToValidate = {
+        ...req.body,
         auditDate: req.body.auditDate ? new Date(req.body.auditDate) : undefined
       };
-      const validated = insertAuditSchema.parse(dataWithTenant);
-      const audit = await storage.createAudit(validated);
+      const validated = insertAuditSchema.parse(dataToValidate);
+      const audit = await storage.createAudit({
+        ...validated,
+        tenantId: DEFAULT_TENANT_ID,
+      });
       res.status(201).json(audit);
     } catch (error: any) {
       console.error("Audit creation validation error:", error);
@@ -752,9 +760,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/leads", async (req, res) => {
     try {
-      const dataWithTenant = { ...req.body, tenantId: null };
-      const validated = insertLeadSchema.parse(dataWithTenant);
-      const lead = await storage.createLead(validated);
+      const validated = insertLeadSchema.parse(req.body);
+      const lead = await storage.createLead({
+        ...validated,
+        tenantId: DEFAULT_TENANT_ID,
+      });
       res.status(201).json(lead);
     } catch (error: any) {
       console.error("Lead creation validation error:", error);
