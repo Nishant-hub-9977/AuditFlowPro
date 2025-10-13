@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function Login() {
   const [, setLocation] = useLocation();
-  const { login } = useAuth();
+  const { login, guestLogin } = useAuth();
   const { toast } = useToast();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -103,6 +103,34 @@ export default function Login() {
               data-testid="button-login"
             >
               {isLoading ? "Signing in..." : "Sign In"}
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={async () => {
+                setIsLoading(true);
+                try {
+                  await guestLogin();
+                  toast({
+                    title: "Welcome!",
+                    description: "Logged in as Guest - explore all features",
+                  });
+                  window.location.href = "/";
+                } catch (error: any) {
+                  toast({
+                    title: "Error",
+                    description: error.message || "Guest login failed",
+                    variant: "destructive",
+                  });
+                  setIsLoading(false);
+                }
+              }}
+              disabled={isLoading}
+              data-testid="button-guest-login"
+            >
+              Try Demo (No Login Required)
             </Button>
 
             <div className="text-center text-sm">

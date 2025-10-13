@@ -143,6 +143,48 @@ router.post("/login", async (req, res) => {
   }
 });
 
+// Guest/Demo login - automatically log in as guest user
+router.post("/guest-login", async (req, res) => {
+  try {
+    // Find guest user
+    const [guestUser] = await db.select().from(schema.users)
+      .where(and(
+        eq(schema.users.email, "guest@demo.com"),
+        eq(schema.users.isActive, true)
+      ))
+      .limit(1);
+
+    if (!guestUser) {
+      return res.status(404).json({ error: "Guest user not found" });
+    }
+
+    // Generate tokens
+    const accessToken = generateAccessToken(guestUser);
+    const refreshToken = generateRefreshToken(guestUser);
+
+    // Store refresh token
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7);
+
+    await db.insert(schema.refreshTokens).values({
+      userId: guestUser.id,
+      token: refreshToken,
+      expiresAt,
+    });
+
+    const { password, ...userWithoutPassword } = guestUser;
+    
+    res.json({
+      user: userWithoutPassword,
+      accessToken,
+      refreshToken,
+    });
+  } catch (error: any) {
+    console.error("Guest login error:", error);
+    res.status(500).json({ error: "Guest login failed" });
+  }
+});
+
 // Refresh token
 router.post("/refresh", async (req, res) => {
   try {

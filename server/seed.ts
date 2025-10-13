@@ -6,18 +6,25 @@ import bcrypt from "bcrypt";
 async function seed() {
   console.log("🌱 Seeding database...");
 
-  // Create default tenant
-  console.log("Creating default tenant...");
-  const [defaultTenant] = await db.insert(schema.tenants).values({
-    name: "Default Organization",
-    subdomain: "default",
-    isActive: true,
-  }).returning().onConflictDoNothing();
+  // Get or create default tenant
+  console.log("Getting or creating default tenant...");
+  let defaultTenant = await db.select().from(schema.tenants)
+    .where(eq(schema.tenants.subdomain, "default"))
+    .limit(1);
 
-  const tenantId = defaultTenant.id;
+  if (defaultTenant.length === 0) {
+    const [newTenant] = await db.insert(schema.tenants).values({
+      name: "Default Organization",
+      subdomain: "default",
+      isActive: true,
+    }).returning();
+    defaultTenant = [newTenant];
+  }
 
-  // Create default admin user
-  console.log("Creating default admin user...");
+  const tenantId = defaultTenant[0].id;
+
+  // Create default admin user (master_admin role)
+  console.log("Creating default master admin user...");
   const hashedPassword = await bcrypt.hash("admin123", 10);
   await db.insert(schema.users).values({
     tenantId,
@@ -25,7 +32,57 @@ async function seed() {
     password: hashedPassword,
     fullName: "System Administrator",
     email: "admin@example.com",
+    role: "master_admin",
+    isActive: true,
+  }).onConflictDoNothing();
+
+  // Create demo users with demo123 password
+  console.log("Creating demo users...");
+  const hashedDemoPassword = await bcrypt.hash("demo123", 10);
+  
+  // Create admin user (admin role)
+  await db.insert(schema.users).values({
+    tenantId,
+    username: "admin_user",
+    password: hashedDemoPassword,
+    fullName: "Admin User",
+    email: "admin_user@example.com",
     role: "admin",
+    isActive: true,
+  }).onConflictDoNothing();
+
+  // Create client user
+  await db.insert(schema.users).values({
+    tenantId,
+    username: "client_user",
+    password: hashedDemoPassword,
+    fullName: "Client User",
+    email: "client_user@example.com",
+    role: "client",
+    isActive: true,
+  }).onConflictDoNothing();
+
+  // Create auditor user
+  await db.insert(schema.users).values({
+    tenantId,
+    username: "auditor_user",
+    password: hashedDemoPassword,
+    fullName: "Auditor User",
+    email: "auditor_user@example.com",
+    role: "auditor",
+    isActive: true,
+  }).onConflictDoNothing();
+
+  // Create guest user for demo mode
+  console.log("Creating guest user for demo mode...");
+  const hashedGuestPassword = await bcrypt.hash("guest123", 10);
+  await db.insert(schema.users).values({
+    tenantId,
+    username: "guest",
+    password: hashedGuestPassword,
+    fullName: "Guest User",
+    email: "guest@demo.com",
+    role: "admin", // Give full access for demo
     isActive: true,
   }).onConflictDoNothing();
 
@@ -138,9 +195,12 @@ async function seed() {
   }
 
   console.log("✅ Database seeded successfully!");
-  console.log("📝 Default admin credentials:");
-  console.log("   Email: admin@example.com");
-  console.log("   Password: admin123");
+  console.log("📝 Demo user credentials:");
+  console.log("   Master Admin: admin@example.com / admin123");
+  console.log("   Admin: admin_user@example.com / demo123");
+  console.log("   Client: client_user@example.com / demo123");
+  console.log("   Auditor: auditor_user@example.com / demo123");
+  console.log("   Guest: Use 'Try Demo' button on login page");
 }
 
 seed().catch((error) => {

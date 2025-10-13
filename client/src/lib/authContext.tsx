@@ -7,6 +7,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, fullName: string, username: string) => Promise<void>;
   logout: () => Promise<void>;
+  guestLogin: () => Promise<void>;
   isLoading: boolean;
 }
 
@@ -161,8 +162,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }
 
+  async function guestLogin() {
+    const response = await fetch("/api/auth/guest-login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || "Guest login failed");
+    }
+
+    const data = await response.json();
+    localStorage.setItem("accessToken", data.accessToken);
+    localStorage.setItem("refreshToken", data.refreshToken);
+    setAccessToken(data.accessToken);
+    setUser(data.user);
+  }
+
   return (
-    <AuthContext.Provider value={{ user, accessToken, login, register, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, accessToken, login, register, logout, guestLogin, isLoading }}>
       {children}
     </AuthContext.Provider>
   );
