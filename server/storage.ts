@@ -164,7 +164,10 @@ export class DbStorage implements IStorage {
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const [user] = await db.insert(schema.users).values(insertUser).returning();
+    if (!insertUser.tenantId) {
+      throw new Error("tenantId is required to create a user");
+    }
+    const [user] = await db.insert(schema.users).values(insertUser as schema.InsertUser & { tenantId: string }).returning();
     return user;
   }
 
@@ -196,7 +199,10 @@ export class DbStorage implements IStorage {
   }
 
   async createIndustry(insertIndustry: InsertIndustry): Promise<Industry> {
-    const [industry] = await db.insert(schema.industries).values(insertIndustry).returning();
+    if (!insertIndustry.tenantId) {
+      throw new Error("tenantId is required to create an industry");
+    }
+    const [industry] = await db.insert(schema.industries).values(insertIndustry as schema.InsertIndustry & { tenantId: string }).returning();
     return industry;
   }
 
@@ -228,7 +234,10 @@ export class DbStorage implements IStorage {
   }
 
   async createAuditType(insertAuditType: InsertAuditType): Promise<AuditType> {
-    const [auditType] = await db.insert(schema.auditTypes).values(insertAuditType).returning();
+    if (!insertAuditType.tenantId) {
+      throw new Error("tenantId is required to create an audit type");
+    }
+    const [auditType] = await db.insert(schema.auditTypes).values(insertAuditType as schema.InsertAuditType & { tenantId: string }).returning();
     return auditType;
   }
 
@@ -259,7 +268,10 @@ export class DbStorage implements IStorage {
   }
 
   async createChecklist(insertChecklist: InsertChecklist): Promise<Checklist> {
-    const [checklist] = await db.insert(schema.checklists).values(insertChecklist).returning();
+    if (!insertChecklist.tenantId) {
+      throw new Error("tenantId is required to create a checklist");
+    }
+    const [checklist] = await db.insert(schema.checklists).values(insertChecklist as schema.InsertChecklist & { tenantId: string }).returning();
     return checklist;
   }
 
@@ -323,7 +335,10 @@ export class DbStorage implements IStorage {
   }
 
   async createAudit(insertAudit: InsertAudit): Promise<Audit> {
-    const [audit] = await db.insert(schema.audits).values(insertAudit).returning();
+    if (!insertAudit.tenantId) {
+      throw new Error("tenantId is required to create an audit");
+    }
+    const [audit] = await db.insert(schema.audits).values(insertAudit as schema.InsertAudit & { tenantId: string }).returning();
     return audit;
   }
 
@@ -510,7 +525,10 @@ export class DbStorage implements IStorage {
   }
 
   async createLead(insertLead: InsertLead): Promise<Lead> {
-    const [lead] = await db.insert(schema.leads).values(insertLead).returning();
+    if (!insertLead.tenantId) {
+      throw new Error("tenantId is required to create a lead");
+    }
+    const [lead] = await db.insert(schema.leads).values(insertLead as schema.InsertLead & { tenantId: string }).returning();
     return lead;
   }
 

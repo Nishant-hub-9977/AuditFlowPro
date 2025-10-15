@@ -18,40 +18,8 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-let db: any;
+import { neon } from '@neondatabase/serverless';
+import { drizzle } from 'drizzle-orm/neon-http';
 
-if (process.env.DATABASE_URL.startsWith("sqlite:")) {
-  // Synchronous require to avoid top-level await issues
-  let Database: any;
-  let drizzleSqlite: any;
-  try {
-    Database = require("better-sqlite3");
-    drizzleSqlite = require("drizzle-orm/better-sqlite3");
-  } catch (err) {
-    console.error("\nERROR: better-sqlite3 is required for sqlite DATABASE_URL but failed to load.");
-    console.error("This usually means you need to install build tools on Windows or use Node.js with prebuilt binaries.");
-    console.error("Options:\n 1) Install Visual Studio Build Tools (Desktop C++ workload) and run 'npm install'.\n 2) Use Node 18 which may have prebuilt binaries for better-sqlite3.\ 3) Change DATABASE_URL to a Postgres/Neon connection for development.");
-    throw err;
-  }
-
-  const { drizzle } = drizzleSqlite;
-  const sqlitePath = process.env.DATABASE_URL.replace("sqlite:", "");
-  const dir = dirname(sqlitePath);
-  if (dir && !existsSync(dir)) {
-    mkdirSync(dir, { recursive: true });
-  }
-
-  const client = new Database(sqlitePath);
-  db = drizzle(client, { schema });
-} else {
-  // Neon / Postgres serverless setup
-  const { Pool, neonConfig } = require("@neondatabase/serverless");
-  const { drizzle } = require("drizzle-orm/neon-serverless");
-  const ws = require("ws");
-  neonConfig.webSocketConstructor = ws.default || ws;
-
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-  db = drizzle({ client: pool, schema });
-}
-
-export { db };
+const sql = neon(process.env.DATABASE_URL!);
+export const db = drizzle(sql, { schema });
