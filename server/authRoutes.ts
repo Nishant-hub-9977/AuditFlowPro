@@ -1,5 +1,4 @@
-import express from "express";
-import type { Request, Response } from 'express';
+import express, { Request, Response, NextFunction } from "express";
 import { db } from "./db";
 import * as schema from "@shared/schema";
 import { eq, and } from "drizzle-orm";
