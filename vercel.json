@@ -1,16 +1,4 @@
 {
   "buildCommand": "pnpm run build",
-  "outputDirectory": "dist",
-  "framework": null,
-  "functions": {
-    "api/index.ts": {
-      "runtime": "@vercel/node"
-    }
-  },
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/api/index.ts"
-    }
-  ]
+  "outputDirectory": "dist"
 }
