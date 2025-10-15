@@ -1,5 +1,4 @@
-import express from "express";
-import type { Request, Response, NextFunction } from 'express';
+import express, { Request, Response, NextFunction } from "express";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
 import { 
