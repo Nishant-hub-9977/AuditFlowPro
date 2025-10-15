@@ -1,10 +1,10 @@
-import { Router, type Request, type Response } from "express";
+import express from "express";
 import { db } from "./db";
 import * as schema from "@shared/schema";
 import { eq, and } from "drizzle-orm";
 import {
   hashPassword,
-  comparePassword,
+  comparePasswords,
   generateAccessToken,
   generateRefreshToken,
   verifyRefreshToken,
@@ -12,10 +12,10 @@ import {
   type AuthRequest,
 } from "./auth";
 
-const router = Router();
+const router = express.Router();
 
 // Register new user
-router.post("/register", async (req: Request, res: Response) => {
+router.post("/register", async (req: express.Request, res: express.Response) => {
   try {
     const data = schema.registerSchema.parse(req.body);
     
@@ -92,7 +92,7 @@ router.post("/register", async (req: Request, res: Response) => {
 });
 
 // Login
-router.post("/login", async (req: Request, res: Response) => {
+router.post("/login", async (req: express.Request, res: express.Response) => {
   try {
     const data = schema.loginSchema.parse(req.body);
 
@@ -109,7 +109,7 @@ router.post("/login", async (req: Request, res: Response) => {
     }
 
     // Verify password
-    const isValidPassword = await comparePassword(data.password, user.password);
+    const isValidPassword = await comparePasswords(data.password, user.password);
     
     if (!isValidPassword) {
       return res.status(401).json({ error: "Invalid credentials" });
@@ -139,12 +139,12 @@ router.post("/login", async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error("Login error:", error);
-    res.status(400).json({ error: error.message || "Login failed" });
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 
 // Guest/Demo login - automatically log in as guest user
-router.post("/guest-login", async (req: Request, res: Response) => {
+router.post("/guest-login", async (req: express.Request, res: express.Response) => {
   try {
     // Find guest user
     const [guestUser] = await db.select().from(schema.users)
@@ -186,7 +186,7 @@ router.post("/guest-login", async (req: Request, res: Response) => {
 });
 
 // Refresh token
-router.post("/refresh", async (req: Request, res: Response) => {
+router.post("/refresh", async (req: express.Request, res: express.Response) => {
   try {
     const { refreshToken } = req.body;
 
@@ -242,7 +242,7 @@ router.post("/refresh", async (req: Request, res: Response) => {
 });
 
 // Logout
-router.post("/logout", authenticateToken, async (req: AuthRequest, res: Response) => {
+router.post("/logout", authenticateToken, async (req: AuthRequest, res: express.Response) => {
   try {
     const { refreshToken } = req.body;
 
@@ -260,7 +260,7 @@ router.post("/logout", authenticateToken, async (req: AuthRequest, res: Response
 });
 
 // Get current user
-router.get("/me", authenticateToken, async (req: AuthRequest, res: Response) => {
+router.get("/me", authenticateToken, async (req: AuthRequest, res: express.Response) => {
   try {
     const [user] = await db.select().from(schema.users)
       .where(eq(schema.users.id, req.user!.userId))
