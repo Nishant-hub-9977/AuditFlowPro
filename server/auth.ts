@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
-import express from "express";
+import type { Request, Response, NextFunction } from 'express';
 import type { User } from "@shared/schema";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
@@ -13,7 +13,7 @@ export interface TokenPayload {
   role: string;
 }
 
-export interface AuthRequest extends express.Request {
+export interface AuthRequest extends Request {
   user?: TokenPayload;
 }
 
@@ -70,7 +70,7 @@ export async function comparePasswords(password: string, hash: string): Promise<
 }
 
 // Auth middleware
-export function authenticateToken(req: AuthRequest, res: express.Response, next: express.NextFunction) {
+export function authenticateToken(req: AuthRequest, res: Response, next: NextFunction) {
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1]; // Bearer TOKEN
 
@@ -90,7 +90,7 @@ export function authenticateToken(req: AuthRequest, res: express.Response, next:
 
 // Role-based authorization middleware
 export function authorizeRoles(...allowedRoles: string[]) {
-  return (req: AuthRequest, res: express.Response, next: express.NextFunction) => {
+  return (req: AuthRequest, res: Response, next: NextFunction) => {
     if (!req.user) {
       return res.status(401).json({ error: "Authentication required" });
     }
@@ -104,7 +104,7 @@ export function authorizeRoles(...allowedRoles: string[]) {
 }
 
 // Tenant isolation middleware
-export function ensureTenantAccess(req: AuthRequest, res: express.Response, next: express.NextFunction) {
+export function ensureTenantAccess(req: AuthRequest, res: Response, next: NextFunction) {
   if (!req.user) {
     return res.status(401).json({ error: "Authentication required" });
   }

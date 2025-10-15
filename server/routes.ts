@@ -1,4 +1,5 @@
 import express from "express";
+import type { Request, Response, NextFunction } from 'express';
 import { db } from "./db";
 import { eq } from "drizzle-orm";
 import { 
@@ -24,15 +25,15 @@ const apiRouter = express.Router();
 // Default tenant ID for no-auth mode
 const DEFAULT_TENANT_ID = "00000000-0000-0000-0000-000000000001";
 
-function getTenantFromLocals(res: express.Response): string {
+function getTenantFromLocals(res: Response): string {
   return (res.locals.tenantId as string) ?? DEFAULT_TENANT_ID;
 }
 
-function getUserRoleFromLocals(res: express.Response): string {
+function getUserRoleFromLocals(res: Response): string {
   return (res.locals.userRole as string) ?? "auditor";
 }
 
-function getUserIdFromLocals(res: express.Response): string | null {
+function getUserIdFromLocals(res: Response): string | null {
   const value = res.locals.userId as string | null | undefined;
   return value ?? null;
 }
@@ -54,7 +55,7 @@ function escapeCSVField(field: string | number): string {
   return stringField;
 }
 
-apiRouter.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
+apiRouter.use((req: Request, res: Response, next: NextFunction) => {
   if (!req.path.startsWith("/api") || req.path.startsWith("/api/auth")) {
     return next();
   }
@@ -69,7 +70,7 @@ apiRouter.use((req: express.Request, res: express.Response, next: express.NextFu
 });
 
 // Dashboard Stats
-apiRouter.get("/dashboard/stats", async (req: express.Request, res: express.Response) => {
+apiRouter.get("/dashboard/stats", async (req: Request, res: Response) => {
   try {
     const tenantId = getTenantFromLocals(res);
     const stats = await storage.getDashboardStats(tenantId);
@@ -79,7 +80,7 @@ apiRouter.get("/dashboard/stats", async (req: express.Request, res: express.Resp
   }
 });
 
-apiRouter.get("/settings/overview", async (req: express.Request, res: express.Response) => {
+apiRouter.get("/settings/overview", async (req: Request, res: Response) => {
   try {
     const tenantId = getTenantFromLocals(res);
 
@@ -135,7 +136,7 @@ apiRouter.get("/settings/overview", async (req: express.Request, res: express.Re
 });
 
 // Reports
-apiRouter.get("/reports/audits", async (req: express.Request, res: express.Response) => {
+apiRouter.get("/reports/audits", async (req: Request, res: Response) => {
   try {
     const tenantId = getTenantFromLocals(res);
     const reports = await storage.getAuditReports(tenantId);
@@ -145,7 +146,7 @@ apiRouter.get("/reports/audits", async (req: express.Request, res: express.Respo
   }
 });
 
-apiRouter.get("/reports/leads", async (req: express.Request, res: express.Response) => {
+apiRouter.get("/reports/leads", async (req: Request, res: Response) => {
   try {
     const tenantId = getTenantFromLocals(res);
     const reports = await storage.getLeadReports(tenantId);
@@ -156,7 +157,7 @@ apiRouter.get("/reports/leads", async (req: express.Request, res: express.Respon
 });
 
 // CSV Export Endpoints
-apiRouter.get("/reports/audits/export/csv", async (req: express.Request, res: express.Response) => {
+apiRouter.get("/reports/audits/export/csv", async (req: Request, res: Response) => {
   try {
     const tenantId = getTenantFromLocals(res);
     const reports = await storage.getAuditReports(tenantId);
@@ -191,7 +192,7 @@ apiRouter.get("/reports/audits/export/csv", async (req: express.Request, res: ex
   }
 });
 
-apiRouter.get("/reports/leads/export/csv", async (req: express.Request, res: express.Response) => {
+apiRouter.get("/reports/leads/export/csv", async (req: Request, res: Response) => {
   try {
     const tenantId = getTenantFromLocals(res);
     const reports = await storage.getLeadReports(tenantId);
@@ -231,7 +232,7 @@ apiRouter.get("/reports/leads/export/csv", async (req: express.Request, res: exp
 });
 
 // Users
-apiRouter.get("/users", authorizeRoles("master_admin", "admin"), async (req: express.Request, res: express.Response) => {
+apiRouter.get("/users", authorizeRoles("master_admin", "admin"), async (req: Request, res: Response) => {
   try {
     const tenantId = getTenantFromLocals(res);
     const users = await storage.getAllUsers(tenantId);
@@ -241,7 +242,7 @@ apiRouter.get("/users", authorizeRoles("master_admin", "admin"), async (req: exp
   }
 });
 
-apiRouter.get("/users/:id", authorizeRoles("master_admin", "admin"), async (req: express.Request, res: express.Response) => {
+apiRouter.get("/users/:id", authorizeRoles("master_admin", "admin"), async (req: Request, res: Response) => {
   try {
     const tenantId = getTenantFromLocals(res);
     const user = await storage.getUser(req.params.id, tenantId);
@@ -254,7 +255,7 @@ apiRouter.get("/users/:id", authorizeRoles("master_admin", "admin"), async (req:
   }
 });
 
-apiRouter.post("/users", authorizeRoles("master_admin", "admin"), async (req: express.Request, res: express.Response) => {
+apiRouter.post("/users", authorizeRoles("master_admin", "admin"), async (req: Request, res: Response) => {
   try {
     const tenantId = getTenantFromLocals(res);
     const validated = insertUserSchema.parse(req.body);
@@ -270,7 +271,7 @@ apiRouter.post("/users", authorizeRoles("master_admin", "admin"), async (req: ex
   }
 });
 
-apiRouter.put("/users/:id", authorizeRoles("master_admin", "admin"), async (req: express.Request, res: express.Response) => {
+apiRouter.put("/users/:id", authorizeRoles("master_admin", "admin"), async (req: Request, res: Response) => {
   try {
     const tenantId = getTenantFromLocals(res);
     const validated = insertUserSchema.partial().parse(req.body);
@@ -291,7 +292,7 @@ apiRouter.put("/users/:id", authorizeRoles("master_admin", "admin"), async (req:
   }
 });
 
-apiRouter.delete("/users/:id", authorizeRoles("master_admin", "admin"), async (req: express.Request, res: express.Response) => {
+apiRouter.delete("/users/:id", authorizeRoles("master_admin", "admin"), async (req: Request, res: Response) => {
   try {
     const tenantId = getTenantFromLocals(res);
     const deleted = await storage.deleteUser(req.params.id, tenantId);
@@ -305,7 +306,7 @@ apiRouter.delete("/users/:id", authorizeRoles("master_admin", "admin"), async (r
 });
 
 // Industries
-apiRouter.get("/industries", async (req: express.Request, res: express.Response) => {
+apiRouter.get("/industries", async (req: Request, res: Response) => {
   try {
     const tenantId = getTenantFromLocals(res);
     const industries = await storage.getAllIndustries(tenantId);
@@ -315,7 +316,7 @@ apiRouter.get("/industries", async (req: express.Request, res: express.Response)
   }
 });
 
-apiRouter.get("/industries/:id", async (req: express.Request, res: express.Response) => {
+apiRouter.get("/industries/:id", async (req: Request, res: Response) => {
   try {
     const tenantId = getTenantFromLocals(res);
     const industry = await storage.getIndustry(req.params.id, tenantId);
@@ -328,7 +329,7 @@ apiRouter.get("/industries/:id", async (req: express.Request, res: express.Respo
   }
 });
 
-apiRouter.post("/industries", authorizeRoles("master_admin", "admin"), async (req: express.Request, res: express.Response) => {
+apiRouter.post("/industries", authorizeRoles("master_admin", "admin"), async (req: Request, res: Response) => {
   try {
     const tenantId = getTenantFromLocals(res);
     const validated = insertIndustrySchema.parse(req.body);
@@ -342,7 +343,7 @@ apiRouter.post("/industries", authorizeRoles("master_admin", "admin"), async (re
   }
 });
 
-apiRouter.put("/industries/:id", authorizeRoles("master_admin", "admin"), async (req: express.Request, res: express.Response) => {
+apiRouter.put("/industries/:id", authorizeRoles("master_admin", "admin"), async (req: Request, res: Response) => {
   try {
     const tenantId = getTenantFromLocals(res);
     const validated = insertIndustrySchema.partial().parse(req.body);
@@ -356,7 +357,7 @@ apiRouter.put("/industries/:id", authorizeRoles("master_admin", "admin"), async 
   }
 });
 
-apiRouter.delete("/industries/:id", authorizeRoles("master_admin", "admin"), async (req: express.Request, res: express.Response) => {
+apiRouter.delete("/industries/:id", authorizeRoles("master_admin", "admin"), async (req: Request, res: Response) => {
   try {
     const tenantId = getTenantFromLocals(res);
     const deleted = await storage.deleteIndustry(req.params.id, tenantId);
@@ -370,7 +371,7 @@ apiRouter.delete("/industries/:id", authorizeRoles("master_admin", "admin"), asy
 });
 
 // Audit Types
-apiRouter.get("/audit-types", async (req: express.Request, res: express.Response) => {
+apiRouter.get("/audit-types", async (req: Request, res: Response) => {
   try {
     const tenantId = getTenantFromLocals(res);
     const auditTypes = await storage.getAllAuditTypes(tenantId);
@@ -380,7 +381,7 @@ apiRouter.get("/audit-types", async (req: express.Request, res: express.Response
   }
 });
 
-apiRouter.get("/audit-types/:id", async (req: express.Request, res: express.Response) => {
+apiRouter.get("/audit-types/:id", async (req: Request, res: Response) => {
   try {
     const tenantId = getTenantFromLocals(res);
     const auditType = await storage.getAuditType(req.params.id, tenantId);
@@ -393,7 +394,7 @@ apiRouter.get("/audit-types/:id", async (req: express.Request, res: express.Resp
   }
 });
 
-apiRouter.post("/audit-types", authorizeRoles("master_admin", "admin"), async (req: express.Request, res: express.Response) => {
+apiRouter.post("/audit-types", authorizeRoles("master_admin", "admin"), async (req: Request, res: Response) => {
   try {
     const tenantId = getTenantFromLocals(res);
     const validated = insertAuditTypeSchema.parse(req.body);
@@ -407,7 +408,7 @@ apiRouter.post("/audit-types", authorizeRoles("master_admin", "admin"), async (r
   }
 });
 
-apiRouter.put("/audit-types/:id", authorizeRoles("master_admin", "admin"), async (req: express.Request, res: express.Response) => {
+apiRouter.put("/audit-types/:id", authorizeRoles("master_admin", "admin"), async (req: Request, res: Response) => {
   try {
     const tenantId = getTenantFromLocals(res);
     const validated = insertAuditTypeSchema.partial().parse(req.body);
@@ -421,7 +422,7 @@ apiRouter.put("/audit-types/:id", authorizeRoles("master_admin", "admin"), async
   }
 });
 
-apiRouter.delete("/audit-types/:id", authorizeRoles("master_admin", "admin"), async (req: express.Request, res: express.Response) => {
+apiRouter.delete("/audit-types/:id", authorizeRoles("master_admin", "admin"), async (req: Request, res: Response) => {
   try {
     const tenantId = getTenantFromLocals(res);
     const deleted = await storage.deleteAuditType(req.params.id, tenantId);
@@ -435,7 +436,7 @@ apiRouter.delete("/audit-types/:id", authorizeRoles("master_admin", "admin"), as
 });
 
 // Checklists
-apiRouter.get("/checklists", async (req: express.Request, res: express.Response) => {
+apiRouter.get("/checklists", async (req: Request, res: Response) => {
   try {
     const { auditTypeId } = req.query;
     const checklists = auditTypeId 
@@ -447,7 +448,7 @@ apiRouter.get("/checklists", async (req: express.Request, res: express.Response)
   }
 });
 
-apiRouter.get("/checklists/:id", async (req: express.Request, res: express.Response) => {
+apiRouter.get("/checklists/:id", async (req: Request, res: Response) => {
   try {
     const checklist = await storage.getChecklist(req.params.id);
     if (!checklist) {
@@ -459,7 +460,7 @@ apiRouter.get("/checklists/:id", async (req: express.Request, res: express.Respo
   }
 });
 
-apiRouter.post("/checklists", async (req: express.Request, res: express.Response) => {
+apiRouter.post("/checklists", async (req: Request, res: Response) => {
   try {
     const validated = insertChecklistSchema.parse(req.body);
     const checklist = await storage.createChecklist({
@@ -472,7 +473,7 @@ apiRouter.post("/checklists", async (req: express.Request, res: express.Response
   }
 });
 
-apiRouter.put("/checklists/:id", async (req: express.Request, res: express.Response) => {
+apiRouter.put("/checklists/:id", async (req: Request, res: Response) => {
   try {
     const validated = insertChecklistSchema.partial().parse(req.body);
     const checklist = await storage.updateChecklist(req.params.id, validated);
@@ -485,7 +486,7 @@ apiRouter.put("/checklists/:id", async (req: express.Request, res: express.Respo
   }
 });
 
-apiRouter.delete("/checklists/:id", async (req: express.Request, res: express.Response) => {
+apiRouter.delete("/checklists/:id", async (req: Request, res: Response) => {
   try {
     const deleted = await storage.deleteChecklist(req.params.id);
     if (!deleted) {
@@ -498,7 +499,7 @@ apiRouter.delete("/checklists/:id", async (req: express.Request, res: express.Re
 });
 
 // Checklist Items
-apiRouter.get("/checklist-items", async (req: express.Request, res: express.Response) => {
+apiRouter.get("/checklist-items", async (req: Request, res: Response) => {
   try {
     const { checklistId } = req.query;
     if (!checklistId) {
@@ -511,7 +512,7 @@ apiRouter.get("/checklist-items", async (req: express.Request, res: express.Resp
   }
 });
 
-apiRouter.get("/checklist-items/:id", async (req: express.Request, res: express.Response) => {
+apiRouter.get("/checklist-items/:id", async (req: Request, res: Response) => {
   try {
     const item = await storage.getChecklistItem(req.params.id);
     if (!item) {
@@ -523,7 +524,7 @@ apiRouter.get("/checklist-items/:id", async (req: express.Request, res: express.
   }
 });
 
-apiRouter.post("/checklist-items", async (req: express.Request, res: express.Response) => {
+apiRouter.post("/checklist-items", async (req: Request, res: Response) => {
   try {
     const validated = insertChecklistItemSchema.parse(req.body);
     const item = await storage.createChecklistItem(validated);
@@ -533,7 +534,7 @@ apiRouter.post("/checklist-items", async (req: express.Request, res: express.Res
   }
 });
 
-apiRouter.put("/checklist-items/:id", async (req: express.Request, res: express.Response) => {
+apiRouter.put("/checklist-items/:id", async (req: Request, res: Response) => {
   try {
     const validated = insertChecklistItemSchema.partial().parse(req.body);
     const item = await storage.updateChecklistItem(req.params.id, validated);
@@ -546,7 +547,7 @@ apiRouter.put("/checklist-items/:id", async (req: express.Request, res: express.
   }
 });
 
-apiRouter.delete("/checklist-items/:id", async (req: express.Request, res: express.Response) => {
+apiRouter.delete("/checklist-items/:id", async (req: Request, res: Response) => {
   try {
     const deleted = await storage.deleteChecklistItem(req.params.id);
     if (!deleted) {
@@ -559,7 +560,7 @@ apiRouter.delete("/checklist-items/:id", async (req: express.Request, res: expre
 });
 
 // Audits
-apiRouter.get("/audits", async (req: express.Request, res: express.Response) => {
+apiRouter.get("/audits", async (req: Request, res: Response) => {
   try {
     const tenantId = getTenantFromLocals(res);
     const { status, auditorId } = req.query;
@@ -577,7 +578,7 @@ apiRouter.get("/audits", async (req: express.Request, res: express.Response) => 
   }
 });
 
-apiRouter.get("/audits/:id", async (req: express.Request, res: express.Response) => {
+apiRouter.get("/audits/:id", async (req: Request, res: Response) => {
   try {
     const tenantId = getTenantFromLocals(res);
     const audit = await storage.getAudit(req.params.id, tenantId);
@@ -590,7 +591,7 @@ apiRouter.get("/audits/:id", async (req: express.Request, res: express.Response)
   }
 });
 
-apiRouter.post("/audits", authorizeRoles("master_admin", "admin", "auditor"), async (req: express.Request, res: express.Response) => {
+apiRouter.post("/audits", authorizeRoles("master_admin", "admin", "auditor"), async (req: Request, res: Response) => {
   try {
     const tenantId = getTenantFromLocals(res);
     // Convert auditDate from ISO string to Date object before parsing
@@ -610,7 +611,7 @@ apiRouter.post("/audits", authorizeRoles("master_admin", "admin", "auditor"), as
   }
 });
 
-apiRouter.put("/audits/:id", authorizeRoles("master_admin", "admin", "auditor"), async (req: express.Request, res: express.Response) => {
+apiRouter.put("/audits/:id", authorizeRoles("master_admin", "admin", "auditor"), async (req: Request, res: Response) => {
   try {
     const tenantId = getTenantFromLocals(res);
     const validated = insertAuditSchema.partial().parse(req.body);
@@ -624,7 +625,7 @@ apiRouter.put("/audits/:id", authorizeRoles("master_admin", "admin", "auditor"),
   }
 });
 
-apiRouter.delete("/audits/:id", authorizeRoles("master_admin", "admin"), async (req: express.Request, res: express.Response) => {
+apiRouter.delete("/audits/:id", authorizeRoles("master_admin", "admin"), async (req: Request, res: Response) => {
   try {
     const tenantId = getTenantFromLocals(res);
     const deleted = await storage.deleteAudit(req.params.id, tenantId);
@@ -638,7 +639,7 @@ apiRouter.delete("/audits/:id", authorizeRoles("master_admin", "admin"), async (
 });
 
 // Audit Workflow Transitions
-apiRouter.post("/audits/:id/submit-for-review", authorizeRoles("auditor", "admin", "master_admin"), async (req: express.Request, res: express.Response) => {
+apiRouter.post("/audits/:id/submit-for-review", authorizeRoles("auditor", "admin", "master_admin"), async (req: Request, res: Response) => {
   try {
     const tenantId = getTenantFromLocals(res);
     const audit = await storage.submitAuditForReview(req.params.id, tenantId);
@@ -651,7 +652,7 @@ apiRouter.post("/audits/:id/submit-for-review", authorizeRoles("auditor", "admin
   }
 });
 
-apiRouter.post("/audits/:id/approve", authorizeRoles("admin", "master_admin"), async (req: express.Request, res: express.Response) => {
+apiRouter.post("/audits/:id/approve", authorizeRoles("admin", "master_admin"), async (req: Request, res: Response) => {
   try {
     const tenantId = getTenantFromLocals(res);
     const audit = await storage.approveAudit(req.params.id, tenantId);
@@ -664,7 +665,7 @@ apiRouter.post("/audits/:id/approve", authorizeRoles("admin", "master_admin"), a
   }
 });
 
-apiRouter.post("/audits/:id/reject", authorizeRoles("admin", "master_admin"), async (req: express.Request, res: express.Response) => {
+apiRouter.post("/audits/:id/reject", authorizeRoles("admin", "master_admin"), async (req: Request, res: Response) => {
   try {
     const tenantId = getTenantFromLocals(res);
     const audit = await storage.rejectAudit(req.params.id, tenantId);
@@ -677,7 +678,7 @@ apiRouter.post("/audits/:id/reject", authorizeRoles("admin", "master_admin"), as
   }
 });
 
-apiRouter.post("/audits/:id/close", authorizeRoles("admin", "master_admin"), async (req: express.Request, res: express.Response) => {
+apiRouter.post("/audits/:id/close", authorizeRoles("admin", "master_admin"), async (req: Request, res: Response) => {
   try {
     const tenantId = getTenantFromLocals(res);
     const audit = await storage.closeAudit(req.params.id, tenantId);
@@ -691,7 +692,7 @@ apiRouter.post("/audits/:id/close", authorizeRoles("admin", "master_admin"), asy
 });
 
 // Audit Checklist Responses
-apiRouter.get("/audit-checklist-responses", async (req: express.Request, res: express.Response) => {
+apiRouter.get("/audit-checklist-responses", async (req: Request, res: Response) => {
   try {
     const { auditId } = req.query;
     if (!auditId) {
@@ -704,7 +705,7 @@ apiRouter.get("/audit-checklist-responses", async (req: express.Request, res: ex
   }
 });
 
-apiRouter.post("/audit-checklist-responses", async (req: express.Request, res: express.Response) => {
+apiRouter.post("/audit-checklist-responses", async (req: Request, res: Response) => {
   try {
     const validated = insertAuditChecklistResponseSchema.parse(req.body);
     const response = await storage.createAuditChecklistResponse(validated);
@@ -714,7 +715,7 @@ apiRouter.post("/audit-checklist-responses", async (req: express.Request, res: e
   }
 });
 
-apiRouter.put("/audit-checklist-responses/:id", async (req: express.Request, res: express.Response) => {
+apiRouter.put("/audit-checklist-responses/:id", async (req: Request, res: Response) => {
   try {
     const validated = insertAuditChecklistResponseSchema.partial().parse(req.body);
     const response = await storage.updateAuditChecklistResponse(req.params.id, validated);
@@ -727,7 +728,7 @@ apiRouter.put("/audit-checklist-responses/:id", async (req: express.Request, res
   }
 });
 
-apiRouter.delete("/audit-checklist-responses/:id", async (req: express.Request, res: express.Response) => {
+apiRouter.delete("/audit-checklist-responses/:id", async (req: Request, res: Response) => {
   try {
     const deleted = await storage.deleteAuditChecklistResponse(req.params.id);
     if (!deleted) {
@@ -740,7 +741,7 @@ apiRouter.delete("/audit-checklist-responses/:id", async (req: express.Request, 
 });
 
 // Observations
-apiRouter.get("/observations", async (req: express.Request, res: express.Response) => {
+apiRouter.get("/observations", async (req: Request, res: Response) => {
   try {
     const { auditId } = req.query;
     if (!auditId) {
@@ -753,7 +754,7 @@ apiRouter.get("/observations", async (req: express.Request, res: express.Respons
   }
 });
 
-apiRouter.post("/observations", async (req: express.Request, res: express.Response) => {
+apiRouter.post("/observations", async (req: Request, res: Response) => {
   try {
     const validated = insertObservationSchema.parse(req.body);
     const observation = await storage.createObservation(validated);
@@ -763,7 +764,7 @@ apiRouter.post("/observations", async (req: express.Request, res: express.Respon
   }
 });
 
-apiRouter.put("/observations/:id", async (req: express.Request, res: express.Response) => {
+apiRouter.put("/observations/:id", async (req: Request, res: Response) => {
   try {
     const validated = insertObservationSchema.partial().parse(req.body);
     const observation = await storage.updateObservation(req.params.id, validated);
@@ -776,7 +777,7 @@ apiRouter.put("/observations/:id", async (req: express.Request, res: express.Res
   }
 });
 
-apiRouter.delete("/observations/:id", async (req: express.Request, res: express.Response) => {
+apiRouter.delete("/observations/:id", async (req: Request, res: Response) => {
   try {
     const deleted = await storage.deleteObservation(req.params.id);
     if (!deleted) {
@@ -789,7 +790,7 @@ apiRouter.delete("/observations/:id", async (req: express.Request, res: express.
 });
 
 // Business Intelligence
-apiRouter.get("/business-intelligence", async (req: express.Request, res: express.Response) => {
+apiRouter.get("/business-intelligence", async (req: Request, res: Response) => {
   try {
     const { auditId } = req.query;
     if (!auditId) {
@@ -802,7 +803,7 @@ apiRouter.get("/business-intelligence", async (req: express.Request, res: expres
   }
 });
 
-apiRouter.post("/business-intelligence", async (req: express.Request, res: express.Response) => {
+apiRouter.post("/business-intelligence", async (req: Request, res: Response) => {
   try {
     const validated = insertBusinessIntelligenceSchema.parse(req.body);
     const bi = await storage.createBusinessIntelligence(validated);
@@ -812,7 +813,7 @@ apiRouter.post("/business-intelligence", async (req: express.Request, res: expre
   }
 });
 
-apiRouter.put("/business-intelligence/:id", async (req: express.Request, res: express.Response) => {
+apiRouter.put("/business-intelligence/:id", async (req: Request, res: Response) => {
   try {
     const validated = insertBusinessIntelligenceSchema.partial().parse(req.body);
     const bi = await storage.updateBusinessIntelligence(req.params.id, validated);
@@ -825,7 +826,7 @@ apiRouter.put("/business-intelligence/:id", async (req: express.Request, res: ex
   }
 });
 
-apiRouter.delete("/business-intelligence/:id", async (req: express.Request, res: express.Response) => {
+apiRouter.delete("/business-intelligence/:id", async (req: Request, res: Response) => {
   try {
     const deleted = await storage.deleteBusinessIntelligence(req.params.id);
     if (!deleted) {
@@ -838,7 +839,7 @@ apiRouter.delete("/business-intelligence/:id", async (req: express.Request, res:
 });
 
 // Leads
-apiRouter.get("/leads", async (req: express.Request, res: express.Response) => {
+apiRouter.get("/leads", async (req: Request, res: Response) => {
   try {
     const tenantId = getTenantFromLocals(res);
     const { status, assignedTo } = req.query;
@@ -856,7 +857,7 @@ apiRouter.get("/leads", async (req: express.Request, res: express.Response) => {
   }
 });
 
-apiRouter.get("/leads/:id", async (req: express.Request, res: express.Response) => {
+apiRouter.get("/leads/:id", async (req: Request, res: Response) => {
   try {
     const tenantId = getTenantFromLocals(res);
     const lead = await storage.getLead(req.params.id, tenantId);
@@ -869,7 +870,7 @@ apiRouter.get("/leads/:id", async (req: express.Request, res: express.Response) 
   }
 });
 
-apiRouter.post("/leads", authorizeRoles("master_admin", "admin", "sales_rep"), async (req: express.Request, res: express.Response) => {
+apiRouter.post("/leads", authorizeRoles("master_admin", "admin", "sales_rep"), async (req: Request, res: Response) => {
   try {
     const tenantId = getTenantFromLocals(res);
     const validated = insertLeadSchema.parse(req.body);
@@ -884,7 +885,7 @@ apiRouter.post("/leads", authorizeRoles("master_admin", "admin", "sales_rep"), a
   }
 });
 
-apiRouter.put("/leads/:id", authorizeRoles("master_admin", "admin", "sales_rep"), async (req: express.Request, res: express.Response) => {
+apiRouter.put("/leads/:id", authorizeRoles("master_admin", "admin", "sales_rep"), async (req: Request, res: Response) => {
   try {
     const tenantId = getTenantFromLocals(res);
     const validated = insertLeadSchema.partial().parse(req.body);
@@ -898,7 +899,7 @@ apiRouter.put("/leads/:id", authorizeRoles("master_admin", "admin", "sales_rep")
   }
 });
 
-apiRouter.delete("/leads/:id", authorizeRoles("master_admin", "admin"), async (req: express.Request, res: express.Response) => {
+apiRouter.delete("/leads/:id", authorizeRoles("master_admin", "admin"), async (req: Request, res: Response) => {
   try {
     const tenantId = getTenantFromLocals(res);
     const deleted = await storage.deleteLead(req.params.id, tenantId);
@@ -912,7 +913,7 @@ apiRouter.delete("/leads/:id", authorizeRoles("master_admin", "admin"), async (r
 });
 
 // Lead Workflow Transitions
-apiRouter.post("/leads/:id/qualify", authorizeRoles("master_admin", "admin", "sales_rep"), async (req: express.Request, res: express.Response) => {
+apiRouter.post("/leads/:id/qualify", authorizeRoles("master_admin", "admin", "sales_rep"), async (req: Request, res: Response) => {
   try {
     const tenantId = getTenantFromLocals(res);
     const lead = await storage.qualifyLead(req.params.id, tenantId);
@@ -925,7 +926,7 @@ apiRouter.post("/leads/:id/qualify", authorizeRoles("master_admin", "admin", "sa
   }
 });
 
-apiRouter.post("/leads/:id/start-progress", authorizeRoles("master_admin", "admin", "sales_rep"), async (req: express.Request, res: express.Response) => {
+apiRouter.post("/leads/:id/start-progress", authorizeRoles("master_admin", "admin", "sales_rep"), async (req: Request, res: Response) => {
   try {
     const tenantId = getTenantFromLocals(res);
     const lead = await storage.startLeadProgress(req.params.id, tenantId);
@@ -938,7 +939,7 @@ apiRouter.post("/leads/:id/start-progress", authorizeRoles("master_admin", "admi
   }
 });
 
-apiRouter.post("/leads/:id/convert", authorizeRoles("master_admin", "admin", "sales_rep"), async (req: express.Request, res: express.Response) => {
+apiRouter.post("/leads/:id/convert", authorizeRoles("master_admin", "admin", "sales_rep"), async (req: Request, res: Response) => {
   try {
     const tenantId = getTenantFromLocals(res);
     const lead = await storage.convertLead(req.params.id, tenantId);
@@ -951,7 +952,7 @@ apiRouter.post("/leads/:id/convert", authorizeRoles("master_admin", "admin", "sa
   }
 });
 
-apiRouter.post("/leads/:id/close", authorizeRoles("master_admin", "admin"), async (req: express.Request, res: express.Response) => {
+apiRouter.post("/leads/:id/close", authorizeRoles("master_admin", "admin"), async (req: Request, res: Response) => {
   try {
     const tenantId = getTenantFromLocals(res);
     const lead = await storage.closeLead(req.params.id, tenantId);
@@ -965,7 +966,7 @@ apiRouter.post("/leads/:id/close", authorizeRoles("master_admin", "admin"), asyn
 });
 
 // Files
-apiRouter.get("/files", async (req: express.Request, res: express.Response) => {
+apiRouter.get("/files", async (req: Request, res: Response) => {
   try {
     const { entityType, entityId } = req.query;
     if (!entityType || !entityId) {
@@ -978,7 +979,7 @@ apiRouter.get("/files", async (req: express.Request, res: express.Response) => {
   }
 });
 
-apiRouter.post("/files", async (req: express.Request, res: express.Response) => {
+apiRouter.post("/files", async (req: Request, res: Response) => {
   try {
     const validated = insertFileSchema.parse(req.body);
     const file = await storage.createFile(validated);
@@ -988,7 +989,7 @@ apiRouter.post("/files", async (req: express.Request, res: express.Response) => 
   }
 });
 
-apiRouter.delete("/files/:id", async (req: express.Request, res: express.Response) => {
+apiRouter.delete("/files/:id", async (req: Request, res: Response) => {
   try {
     const deleted = await storage.deleteFile(req.params.id);
     if (!deleted) {
@@ -1001,7 +1002,7 @@ apiRouter.delete("/files/:id", async (req: express.Request, res: express.Respons
 });
 
 // Follow-up Actions
-apiRouter.get("/follow-up-actions", async (req: express.Request, res: express.Response) => {
+apiRouter.get("/follow-up-actions", async (req: Request, res: Response) => {
   try {
     const { auditId } = req.query;
     if (!auditId) {
@@ -1014,7 +1015,7 @@ apiRouter.get("/follow-up-actions", async (req: express.Request, res: express.Re
   }
 });
 
-apiRouter.post("/follow-up-actions", async (req: express.Request, res: express.Response) => {
+apiRouter.post("/follow-up-actions", async (req: Request, res: Response) => {
   try {
     const validated = insertFollowUpActionSchema.parse(req.body);
     const action = await storage.createFollowUpAction(validated);
@@ -1024,7 +1025,7 @@ apiRouter.post("/follow-up-actions", async (req: express.Request, res: express.R
   }
 });
 
-apiRouter.put("/follow-up-actions/:id", async (req: express.Request, res: express.Response) => {
+apiRouter.put("/follow-up-actions/:id", async (req: Request, res: Response) => {
   try {
     const validated = insertFollowUpActionSchema.partial().parse(req.body);
     const action = await storage.updateFollowUpAction(req.params.id, validated);
@@ -1037,7 +1038,7 @@ apiRouter.put("/follow-up-actions/:id", async (req: express.Request, res: expres
   }
 });
 
-apiRouter.delete("/follow-up-actions/:id", async (req: express.Request, res: express.Response) => {
+apiRouter.delete("/follow-up-actions/:id", async (req: Request, res: Response) => {
   try {
     const deleted = await storage.deleteFollowUpAction(req.params.id);
     if (!deleted) {
