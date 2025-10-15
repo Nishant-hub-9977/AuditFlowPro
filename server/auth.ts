@@ -1,11 +1,35 @@
-/// <reference types="express" />
+import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
-import type { Request, Response, NextFunction } from 'express';
-import type { User } from "@shared/schema";
+import { User } from "@shared/schema";
 
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
-const REFRESH_SECRET = process.env.REFRESH_SECRET || "your-refresh-secret-key-change-in-production";
+function getRequiredEnv(name: "JWT_SECRET" | "REFRESH_SECRET"): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`${name} environment variable is required`);
+  }
+
+  return value;
+}
+
+let cachedJwtSecret: string | null = null;
+let cachedRefreshSecret: string | null = null;
+
+function getJwtSecret(): string {
+  if (!cachedJwtSecret) {
+    cachedJwtSecret = getRequiredEnv("JWT_SECRET");
+  }
+
+  return cachedJwtSecret;
+}
+
+function getRefreshSecret(): string {
+  if (!cachedRefreshSecret) {
+    cachedRefreshSecret = getRequiredEnv("REFRESH_SECRET");
+  }
+
+  return cachedRefreshSecret;
+}
 
 export interface TokenPayload {
   userId: string;
@@ -18,7 +42,6 @@ export interface AuthRequest extends Request {
   user?: TokenPayload;
 }
 
-// Generate access token (15 minutes)
 export function generateAccessToken(user: User): string {
   const payload: TokenPayload = {
     userId: user.id,
@@ -26,11 +49,10 @@ export function generateAccessToken(user: User): string {
     email: user.email,
     role: user.role,
   };
-  
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: "15m" });
+
+  return jwt.sign(payload, getJwtSecret(), { expiresIn: "15m" });
 }
 
-// Generate refresh token (7 days)
 export function generateRefreshToken(user: User): string {
   const payload: TokenPayload = {
     userId: user.id,
@@ -38,79 +60,85 @@ export function generateRefreshToken(user: User): string {
     email: user.email,
     role: user.role,
   };
-  
-  return jwt.sign(payload, REFRESH_SECRET, { expiresIn: "7d" });
+
+  return jwt.sign(payload, getRefreshSecret(), { expiresIn: "7d" });
 }
 
-// Verify access token
 export function verifyAccessToken(token: string): TokenPayload | null {
   try {
-    return jwt.verify(token, JWT_SECRET) as TokenPayload;
+  const decoded = jwt.verify(token, getJwtSecret());
+    if (typeof decoded === "string" || !decoded) {
+      return null;
+    }
+
+    return decoded as TokenPayload;
   } catch (error) {
     return null;
   }
 }
 
-// Verify refresh token
 export function verifyRefreshToken(token: string): TokenPayload | null {
   try {
-    return jwt.verify(token, REFRESH_SECRET) as TokenPayload;
+  const decoded = jwt.verify(token, getRefreshSecret());
+    if (typeof decoded === "string" || !decoded) {
+      return null;
+    }
+
+    return decoded as TokenPayload;
   } catch (error) {
     return null;
   }
 }
 
-// Hash password
 export async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 10);
 }
 
-// Compare password
 export async function comparePasswords(password: string, hash: string): Promise<boolean> {
   return bcrypt.compare(password, hash);
 }
 
-// Auth middleware
-export function authenticateToken(req: AuthRequest, res: Response, next: NextFunction) {
+export function authenticateToken(req: AuthRequest, res: Response, next: NextFunction): void {
   const authHeader = req.headers["authorization"];
-  const token = authHeader && authHeader.split(" ")[1]; // Bearer TOKEN
+  const token = authHeader?.split(" ")[1];
 
   if (!token) {
-    return res.status(401).json({ error: "Access token required" });
+    res.status(401).json({ error: "Access token required" });
+    return;
   }
 
   const payload = verifyAccessToken(token);
-  
+
   if (!payload) {
-    return res.status(403).json({ error: "Invalid or expired token" });
+    res.status(403).json({ error: "Invalid or expired token" });
+    return;
   }
 
   req.user = payload;
   next();
 }
 
-// Role-based authorization middleware
 export function authorizeRoles(...allowedRoles: string[]) {
-  return (req: AuthRequest, res: Response, next: NextFunction) => {
+  return (req: AuthRequest, res: Response, next: NextFunction): void => {
     if (!req.user) {
-      return res.status(401).json({ error: "Authentication required" });
+      res.status(401).json({ error: "Authentication required" });
+      return;
     }
 
     if (!allowedRoles.includes(req.user.role)) {
-      return res.status(403).json({ error: "Insufficient permissions" });
+      res.status(403).json({ error: "Insufficient permissions" });
+      return;
     }
 
     next();
   };
 }
 
-// Tenant isolation middleware
-export function ensureTenantAccess(req: AuthRequest, res: Response, next: NextFunction) {
+export function ensureTenantAccess(req: AuthRequest, res: Response, next: NextFunction): void {
   if (!req.user) {
-    return res.status(401).json({ error: "Authentication required" });
+    res.status(401).json({ error: "Authentication required" });
+    return;
   }
 
-  // This middleware ensures all queries are scoped to the user's tenant
-  // The actual tenant filtering will be done in the storage layer
   next();
 }
