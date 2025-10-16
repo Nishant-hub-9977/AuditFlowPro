@@ -27,6 +27,17 @@ Update these values to match your deployment target before building images or ru
 - `pnpm start` – launches the compiled server (after `pnpm run build`)
 - `pnpm preview` – serves the built client for smoke testing
 
+## Deploying to Vercel
+
+The repository ships with a `vercel.json` configuration that builds both the client and API when deployed on Vercel:
+
+1. Ensure the required environment variables (`DATABASE_URL`, `JWT_SECRET`, `REFRESH_SECRET`, etc.) are defined in the Vercel dashboard under **Project Settings → Environment Variables**.
+2. Push changes to the `main` branch (or whichever branch is connected to Vercel). The provided `pnpm run build` command performs two steps:
+   - `vite build` outputs the static React bundle to `dist/public` for Vercel to serve.
+   - `esbuild server/index.ts` bundles the Express app that backs the serverless entry point (`api/index.ts`).
+3. Requests under `/api` are handled by the Express serverless function, while all other routes rewrite to the SPA entry (`index.html`) so router-based deep links resolve correctly.
+4. If you need a clean deployment, use “Redeploy without cache” in the Vercel UI or run `vercel --prod --force` from the CLI.
+
 ## Docker
 
 A multi-stage `Dockerfile` and a `docker-compose.yml` are provided for production deployments that include the application server and a PostgreSQL database. Refer to the comments in those files to tailor resource limits, secrets, and ports for your environment.
