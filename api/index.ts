@@ -1,9 +1,9 @@
-// api/index.ts
-import 'dotenv/config';
-import serverless from 'serverless-http';
-import app from '../server/app';
+import type { VercelRequest, VercelResponse } from "@vercel/node";
+import serverless from "serverless-http";
+import app from "../server/app";
 
-// Vercel hint: don’t parse body twice
-export const config = { api: { bodyParser: false } };
+const handler = serverless(app);
 
-export default serverless(app);
+export default function vercelHandler(req: VercelRequest, res: VercelResponse) {
+	return handler(req as any, res as any);
+}

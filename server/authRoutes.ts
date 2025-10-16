@@ -1,4 +1,8 @@
-import express, { Request, Response, NextFunction } from "express";
+import express from "express";
+import type {
+  Request as ExpressRequest,
+  Response as ExpressResponse,
+} from "express";
 import { db } from "./db";
 import * as schema from "@shared/schema";
 import { eq, and } from "drizzle-orm";
@@ -15,7 +19,7 @@ import {
 const router = express.Router();
 
 // Register new user
-router.post("/register", async (req: Request, res: Response) => {
+router.post("/register", async (req: ExpressRequest, res: ExpressResponse) => {
   try {
     const data = schema.registerSchema.parse(req.body);
     
@@ -92,7 +96,7 @@ router.post("/register", async (req: Request, res: Response) => {
 });
 
 // Login
-router.post("/login", async (req: Request, res: Response) => {
+router.post("/login", async (req: ExpressRequest, res: ExpressResponse) => {
   try {
     const data = schema.loginSchema.parse(req.body);
 
@@ -144,7 +148,7 @@ router.post("/login", async (req: Request, res: Response) => {
 });
 
 // Guest/Demo login - automatically log in as guest user
-router.post("/guest-login", async (req: Request, res: Response) => {
+router.post("/guest-login", async (req: ExpressRequest, res: ExpressResponse) => {
   try {
     // Find guest user
     const [guestUser] = await db.select().from(schema.users)
@@ -186,7 +190,7 @@ router.post("/guest-login", async (req: Request, res: Response) => {
 });
 
 // Refresh token
-router.post("/refresh", async (req: Request, res: Response) => {
+router.post("/refresh", async (req: ExpressRequest, res: ExpressResponse) => {
   try {
     const { refreshToken } = req.body;
 
@@ -242,7 +246,7 @@ router.post("/refresh", async (req: Request, res: Response) => {
 });
 
 // Logout
-router.post("/logout", authenticateToken, async (req: AuthRequest, res: Response) => {
+router.post("/logout", authenticateToken, async (req: AuthRequest, res: ExpressResponse) => {
   try {
     const { refreshToken } = req.body;
 
@@ -260,7 +264,7 @@ router.post("/logout", authenticateToken, async (req: AuthRequest, res: Response
 });
 
 // Get current user
-router.get("/me", authenticateToken, async (req: AuthRequest, res: Response) => {
+router.get("/me", authenticateToken, async (req: AuthRequest, res: ExpressResponse) => {
   try {
     const [user] = await db.select().from(schema.users)
       .where(eq(schema.users.id, req.user!.userId))

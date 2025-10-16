@@ -1,4 +1,8 @@
-import { Request, Response, NextFunction } from "express";
+import type {
+  Request as ExpressRequest,
+  Response as ExpressResponse,
+  NextFunction as ExpressNextFunction,
+} from "express";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import { User } from "@shared/schema";
@@ -38,7 +42,7 @@ export interface TokenPayload {
   role: string;
 }
 
-export interface AuthRequest extends Request {
+export interface AuthRequest extends ExpressRequest {
   user?: TokenPayload;
 }
 
@@ -98,7 +102,11 @@ export async function comparePasswords(password: string, hash: string): Promise<
   return bcrypt.compare(password, hash);
 }
 
-export function authenticateToken(req: AuthRequest, res: Response, next: NextFunction): void {
+export function authenticateToken(
+  req: AuthRequest,
+  res: ExpressResponse,
+  next: ExpressNextFunction,
+): void {
   const authHeader = req.headers["authorization"];
   const token = authHeader?.split(" ")[1];
 
@@ -119,7 +127,11 @@ export function authenticateToken(req: AuthRequest, res: Response, next: NextFun
 }
 
 export function authorizeRoles(...allowedRoles: string[]) {
-  return (req: AuthRequest, res: Response, next: NextFunction): void => {
+  return (
+    req: AuthRequest,
+    res: ExpressResponse,
+    next: ExpressNextFunction,
+  ): void => {
     if (!req.user) {
       res.status(401).json({ error: "Authentication required" });
       return;
@@ -134,7 +146,11 @@ export function authorizeRoles(...allowedRoles: string[]) {
   };
 }
 
-export function ensureTenantAccess(req: AuthRequest, res: Response, next: NextFunction): void {
+export function ensureTenantAccess(
+  req: AuthRequest,
+  res: ExpressResponse,
+  next: ExpressNextFunction,
+): void {
   if (!req.user) {
     res.status(401).json({ error: "Authentication required" });
     return;
