@@ -1,160 +1,169 @@
-import type {
-  Request as ExpressRequest,
-  Response as ExpressResponse,
-  NextFunction as ExpressNextFunction,
-} from "express";
+import type { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
-import { User } from "@shared/schema";
+import crypto from "crypto";
+import { and, desc, eq, gt } from "drizzle-orm";
+import { db } from "./db";
+import { refreshTokens } from "../shared/schema";
 
-function getRequiredEnv(name: "JWT_SECRET" | "REFRESH_SECRET"): string {
-  const value = process.env[name];
-  if (!value) {
-    throw new Error(`${name} environment variable is required`);
-  }
+const ACCESS_COOKIE_NAME = "accessToken";
+const REFRESH_COOKIE_NAME = "refreshToken";
+const isProduction = process.env.NODE_ENV === "production";
 
-  return value;
+function requireSecret(name: "JWT_SECRET" | "REFRESH_SECRET"): string {
+	const value = process.env[name];
+	if (!value) {
+		throw new Error(`${name} environment variable is required`);
+	}
+	return value;
 }
 
-let cachedJwtSecret: string | null = null;
-let cachedRefreshSecret: string | null = null;
+const JWT_SECRET = requireSecret("JWT_SECRET");
+const REFRESH_SECRET = requireSecret("REFRESH_SECRET");
 
-function getJwtSecret(): string {
-  if (!cachedJwtSecret) {
-    cachedJwtSecret = getRequiredEnv("JWT_SECRET");
-  }
+export const REFRESH_SECRET_VALUE = REFRESH_SECRET;
 
-  return cachedJwtSecret;
+export type TokenPayload = {
+	userId: string;
+	role: string;
+	tenantId?: string;
+};
+
+export interface AuthRequest extends Request {
+	user?: TokenPayload;
 }
 
-function getRefreshSecret(): string {
-  if (!cachedRefreshSecret) {
-    cachedRefreshSecret = getRequiredEnv("REFRESH_SECRET");
-  }
+type RefreshTokenRecord = typeof refreshTokens.$inferSelect;
 
-  return cachedRefreshSecret;
+export function issueTokens(user: { id: string; role: string; tenantId?: string }) {
+	const payload: TokenPayload = {
+		userId: user.id,
+		role: user.role,
+		tenantId: user.tenantId ?? undefined,
+	};
+
+	const accessToken = jwt.sign(payload, JWT_SECRET, { expiresIn: "15m" });
+	const refreshToken = crypto.randomBytes(32).toString("hex");
+
+	return { accessToken, refreshToken };
 }
 
-export interface TokenPayload {
-  userId: string;
-  tenantId: string;
-  email: string;
-  role: string;
+export function hashRefreshToken(token: string): Promise<string> {
+	return bcrypt.hash(token, 10);
 }
 
-export interface AuthRequest extends ExpressRequest {
-  user?: TokenPayload;
+export async function persistRefreshToken(
+	userId: string,
+	hashedToken: string,
+	ttlDays = 14,
+): Promise<void> {
+	const expiresAt = new Date(Date.now() + ttlDays * 24 * 60 * 60 * 1000);
+	await db
+		.insert(refreshTokens)
+		.values({ userId, token: hashedToken, expiresAt })
+		.onConflictDoNothing();
 }
 
-export function generateAccessToken(user: User): string {
-  const payload: TokenPayload = {
-    userId: user.id,
-    tenantId: user.tenantId,
-    email: user.email,
-    role: user.role,
-  };
-
-  return jwt.sign(payload, getJwtSecret(), { expiresIn: "15m" });
+export async function revokeRefreshToken(userId: string, hashedToken: string): Promise<void> {
+	await db
+		.delete(refreshTokens)
+		.where(and(eq(refreshTokens.userId, userId), eq(refreshTokens.token, hashedToken)));
 }
 
-export function generateRefreshToken(user: User): string {
-  const payload: TokenPayload = {
-    userId: user.id,
-    tenantId: user.tenantId,
-    email: user.email,
-    role: user.role,
-  };
-
-  return jwt.sign(payload, getRefreshSecret(), { expiresIn: "7d" });
+async function getActiveRefreshTokens(userId: string): Promise<RefreshTokenRecord[]> {
+	const now = new Date();
+		return db
+			.select()
+			.from(refreshTokens)
+			.where(and(eq(refreshTokens.userId, userId), gt(refreshTokens.expiresAt, now)))
+			.orderBy(desc(refreshTokens.createdAt));
 }
 
-export function verifyAccessToken(token: string): TokenPayload | null {
-  try {
-  const decoded = jwt.verify(token, getJwtSecret());
-    if (typeof decoded === "string" || !decoded) {
-      return null;
-    }
-
-    return decoded as TokenPayload;
-  } catch (error) {
-    return null;
-  }
+export async function getValidRefreshToken(
+	userId: string,
+	token: string,
+): Promise<RefreshTokenRecord | null> {
+	const candidates = await getActiveRefreshTokens(userId);
+	for (const entry of candidates) {
+		const matches = await bcrypt.compare(token, entry.token);
+		if (matches) {
+			return entry;
+		}
+	}
+	return null;
 }
 
-export function verifyRefreshToken(token: string): TokenPayload | null {
-  try {
-  const decoded = jwt.verify(token, getRefreshSecret());
-    if (typeof decoded === "string" || !decoded) {
-      return null;
-    }
+export async function verifyRefreshToken(userId: string, token: string): Promise<boolean> {
+	return (await getValidRefreshToken(userId, token)) !== null;
+}
 
-    return decoded as TokenPayload;
-  } catch (error) {
-    return null;
-  }
+function resolveAuthToken(req: Request): string | undefined {
+	const headerToken = req.headers.authorization?.split(" ")[1];
+	const cookieToken = req.cookies?.[ACCESS_COOKIE_NAME];
+	return headerToken ?? cookieToken;
+}
+
+export function authenticateToken(req: AuthRequest, res: Response, next: NextFunction): void {
+	const token = resolveAuthToken(req);
+
+	if (!token) {
+		res.status(401).json({ error: "Access token required" });
+		return;
+	}
+
+	try {
+		const payload = jwt.verify(token, JWT_SECRET) as TokenPayload;
+		req.user = payload;
+		next();
+	} catch (error) {
+		res.status(401).json({ error: "Invalid or expired access token" });
+	}
+}
+
+export function authorizeRoles(...roles: string[]) {
+	return (req: AuthRequest, res: Response, next: NextFunction): void => {
+		if (!req.user) {
+			res.status(401).json({ error: "Authentication required" });
+			return;
+		}
+
+		if (roles.length > 0 && !roles.includes(req.user.role)) {
+			res.status(403).json({ error: "Insufficient permissions" });
+			return;
+		}
+
+		next();
+	};
+}
+
+function buildCookieOptions(maxAgeSeconds: number, path: string) {
+	return {
+		httpOnly: true,
+		sameSite: "strict" as const,
+		secure: isProduction,
+		path,
+		maxAge: maxAgeSeconds * 1000,
+	};
+}
+
+export function setAccessCookie(res: Response, token: string): void {
+	res.cookie(ACCESS_COOKIE_NAME, token, buildCookieOptions(15 * 60, "/"));
+}
+
+export function setRefreshCookie(res: Response, token: string): void {
+	res.cookie(REFRESH_COOKIE_NAME, token, buildCookieOptions(14 * 24 * 60 * 60, "/auth"));
+}
+
+export function clearAuthCookies(res: Response): void {
+	res.clearCookie(ACCESS_COOKIE_NAME, { path: "/" });
+	res.clearCookie(REFRESH_COOKIE_NAME, { path: "/auth" });
 }
 
 export async function hashPassword(password: string): Promise<string> {
-  return bcrypt.hash(password, 10);
+	return bcrypt.hash(password, 10);
 }
 
 export async function comparePasswords(password: string, hash: string): Promise<boolean> {
-  return bcrypt.compare(password, hash);
+	return bcrypt.compare(password, hash);
 }
 
-export function authenticateToken(
-  req: AuthRequest,
-  res: ExpressResponse,
-  next: ExpressNextFunction,
-): void {
-  const authHeader = req.headers["authorization"];
-  const token = authHeader?.split(" ")[1];
-
-  if (!token) {
-    res.status(401).json({ error: "Access token required" });
-    return;
-  }
-
-  const payload = verifyAccessToken(token);
-
-  if (!payload) {
-    res.status(403).json({ error: "Invalid or expired token" });
-    return;
-  }
-
-  req.user = payload;
-  next();
-}
-
-export function authorizeRoles(...allowedRoles: string[]) {
-  return (
-    req: AuthRequest,
-    res: ExpressResponse,
-    next: ExpressNextFunction,
-  ): void => {
-    if (!req.user) {
-      res.status(401).json({ error: "Authentication required" });
-      return;
-    }
-
-    if (!allowedRoles.includes(req.user.role)) {
-      res.status(403).json({ error: "Insufficient permissions" });
-      return;
-    }
-
-    next();
-  };
-}
-
-export function ensureTenantAccess(
-  req: AuthRequest,
-  res: ExpressResponse,
-  next: ExpressNextFunction,
-): void {
-  if (!req.user) {
-    res.status(401).json({ error: "Authentication required" });
-    return;
-  }
-
-  next();
-}

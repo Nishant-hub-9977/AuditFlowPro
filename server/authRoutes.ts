@@ -1,22 +1,51 @@
 import express from "express";
-import type {
-  Request as ExpressRequest,
-  Response as ExpressResponse,
-} from "express";
+import type { Request as ExpressRequest, Response as ExpressResponse } from "express";
 import { db } from "./db";
-import * as schema from "@shared/schema";
-import { eq, and } from "drizzle-orm";
+import * as schema from "../shared/schema";
+import { and, eq } from "drizzle-orm";
 import {
-  hashPassword,
-  comparePasswords,
-  generateAccessToken,
-  generateRefreshToken,
-  verifyRefreshToken,
   authenticateToken,
-  type AuthRequest,
+  clearAuthCookies,
+  comparePasswords,
+  getValidRefreshToken,
+  hashPassword,
+  hashRefreshToken,
+  issueTokens,
+  persistRefreshToken,
+  revokeRefreshToken,
+  setAccessCookie,
+  setRefreshCookie,
 } from "./auth";
 
 const router = express.Router();
+
+type AuthenticatedRequest = ExpressRequest & { user?: import("./auth").TokenPayload };
+
+interface RefreshCookiePayload {
+  userId: string;
+  token: string;
+}
+
+function encodeRefreshCookie(payload: RefreshCookiePayload): string {
+  return Buffer.from(JSON.stringify(payload), "utf-8").toString("base64url");
+}
+
+function decodeRefreshCookie(value: unknown): RefreshCookiePayload | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  try {
+    const json = Buffer.from(value, "base64url").toString("utf-8");
+    const parsed = JSON.parse(json) as Partial<RefreshCookiePayload>;
+    if (typeof parsed.userId === "string" && typeof parsed.token === "string") {
+      return { userId: parsed.userId, token: parsed.token };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
 
 // Register new user
 router.post("/register", async (req: ExpressRequest, res: ExpressResponse) => {
@@ -67,27 +96,19 @@ router.post("/register", async (req: ExpressRequest, res: ExpressResponse) => {
       isActive: true,
     }).returning();
 
-    // Generate tokens
-    const accessToken = generateAccessToken(newUser);
-    const refreshToken = generateRefreshToken(newUser);
+    const tokens = issueTokens({ id: newUser.id, role: newUser.role, tenantId: newUser.tenantId });
+    await persistRefreshToken(newUser.id, await hashRefreshToken(tokens.refreshToken));
 
-    // Store refresh token
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
+    setAccessCookie(res, tokens.accessToken);
+    setRefreshCookie(res, encodeRefreshCookie({ userId: newUser.id, token: tokens.refreshToken }));
 
-    await db.insert(schema.refreshTokens).values({
-      userId: newUser.id,
-      token: refreshToken,
-      expiresAt,
-    });
-
-    // Return user data (without password) and tokens
-    const { password, ...userWithoutPassword } = newUser;
-    
-    res.json({
-      user: userWithoutPassword,
-      accessToken,
-      refreshToken,
+    res.status(201).json({
+      user: {
+        id: newUser.id,
+        email: newUser.email,
+        role: newUser.role,
+        tenantId: newUser.tenantId,
+      },
     });
   } catch (error: any) {
     console.error("Registration error:", error);
@@ -119,27 +140,18 @@ router.post("/login", async (req: ExpressRequest, res: ExpressResponse) => {
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
-    // Generate tokens
-    const accessToken = generateAccessToken(user);
-    const refreshToken = generateRefreshToken(user);
+    const tokens = issueTokens({ id: user.id, role: user.role, tenantId: user.tenantId });
+    await persistRefreshToken(user.id, await hashRefreshToken(tokens.refreshToken));
 
-    // Store refresh token
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
+    setAccessCookie(res, tokens.accessToken);
+    setRefreshCookie(res, encodeRefreshCookie({ userId: user.id, token: tokens.refreshToken }));
 
-    await db.insert(schema.refreshTokens).values({
-      userId: user.id,
-      token: refreshToken,
-      expiresAt,
-    });
-
-    // Return user data (without password) and tokens
-    const { password, ...userWithoutPassword } = user;
-    
-    res.json({
-      user: userWithoutPassword,
-      accessToken,
-      refreshToken,
+    res.status(200).json({
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+      },
     });
   } catch (error: any) {
     console.error("Login error:", error);
@@ -162,26 +174,18 @@ router.post("/guest-login", async (req: ExpressRequest, res: ExpressResponse) =>
       return res.status(404).json({ error: "Guest user not found" });
     }
 
-    // Generate tokens
-    const accessToken = generateAccessToken(guestUser);
-    const refreshToken = generateRefreshToken(guestUser);
+    const tokens = issueTokens({ id: guestUser.id, role: guestUser.role, tenantId: guestUser.tenantId });
+    await persistRefreshToken(guestUser.id, await hashRefreshToken(tokens.refreshToken));
 
-    // Store refresh token
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7);
+    setAccessCookie(res, tokens.accessToken);
+    setRefreshCookie(res, encodeRefreshCookie({ userId: guestUser.id, token: tokens.refreshToken }));
 
-    await db.insert(schema.refreshTokens).values({
-      userId: guestUser.id,
-      token: refreshToken,
-      expiresAt,
-    });
-
-    const { password, ...userWithoutPassword } = guestUser;
-    
-    res.json({
-      user: userWithoutPassword,
-      accessToken,
-      refreshToken,
+    res.status(200).json({
+      user: {
+        id: guestUser.id,
+        email: guestUser.email,
+        role: guestUser.role,
+      },
     });
   } catch (error: any) {
     console.error("Guest login error:", error);
@@ -192,52 +196,46 @@ router.post("/guest-login", async (req: ExpressRequest, res: ExpressResponse) =>
 // Refresh token
 router.post("/refresh", async (req: ExpressRequest, res: ExpressResponse) => {
   try {
-    const { refreshToken } = req.body;
+    const cookiePayload = decodeRefreshCookie(req.cookies?.refreshToken);
 
-    if (!refreshToken) {
-      return res.status(400).json({ error: "Refresh token required" });
+    if (!cookiePayload) {
+      clearAuthCookies(res);
+      return res.status(401).json({ error: "Refresh token missing" });
     }
 
-    // Verify refresh token
-    const payload = verifyRefreshToken(refreshToken);
-    
-    if (!payload) {
-      return res.status(403).json({ error: "Invalid refresh token" });
+    const record = await getValidRefreshToken(cookiePayload.userId, cookiePayload.token);
+
+    if (!record) {
+      clearAuthCookies(res);
+      return res.status(401).json({ error: "Refresh token invalid" });
     }
 
-    // Check if refresh token exists in database
-    const [storedToken] = await db.select().from(schema.refreshTokens)
-      .where(and(
-        eq(schema.refreshTokens.token, refreshToken),
-        eq(schema.refreshTokens.userId, payload.userId)
-      ))
-      .limit(1);
-
-    if (!storedToken) {
-      return res.status(403).json({ error: "Refresh token not found" });
-    }
-
-    // Check if token is expired
-    if (new Date() > new Date(storedToken.expiresAt)) {
-      await db.delete(schema.refreshTokens)
-        .where(eq(schema.refreshTokens.id, storedToken.id));
-      return res.status(403).json({ error: "Refresh token expired" });
-    }
-
-    // Get user
-    const [user] = await db.select().from(schema.users)
-      .where(eq(schema.users.id, payload.userId))
+    const [user] = await db
+      .select()
+      .from(schema.users)
+      .where(eq(schema.users.id, cookiePayload.userId))
       .limit(1);
 
     if (!user || !user.isActive) {
+      await revokeRefreshToken(cookiePayload.userId, record.token);
+      clearAuthCookies(res);
       return res.status(403).json({ error: "User not found or inactive" });
     }
 
-    // Generate new access token
-    const newAccessToken = generateAccessToken(user);
+    await revokeRefreshToken(cookiePayload.userId, record.token);
 
-    res.json({
-      accessToken: newAccessToken,
+    const tokens = issueTokens({ id: user.id, role: user.role, tenantId: user.tenantId });
+    await persistRefreshToken(user.id, await hashRefreshToken(tokens.refreshToken));
+
+    setAccessCookie(res, tokens.accessToken);
+    setRefreshCookie(res, encodeRefreshCookie({ userId: user.id, token: tokens.refreshToken }));
+
+    res.status(200).json({
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+      },
     });
   } catch (error: any) {
     console.error("Token refresh error:", error);
@@ -246,17 +244,18 @@ router.post("/refresh", async (req: ExpressRequest, res: ExpressResponse) => {
 });
 
 // Logout
-router.post("/logout", authenticateToken, async (req: AuthRequest, res: ExpressResponse) => {
+router.post("/logout", authenticateToken, async (req: AuthenticatedRequest, res: ExpressResponse) => {
   try {
-    const { refreshToken } = req.body;
-
-    if (refreshToken) {
-      // Delete refresh token from database
-      await db.delete(schema.refreshTokens)
-        .where(eq(schema.refreshTokens.token, refreshToken));
+    const cookiePayload = decodeRefreshCookie(req.cookies?.refreshToken);
+    if (cookiePayload) {
+      const record = await getValidRefreshToken(cookiePayload.userId, cookiePayload.token);
+      if (record) {
+        await revokeRefreshToken(cookiePayload.userId, record.token);
+      }
     }
 
-    res.json({ message: "Logged out successfully" });
+    clearAuthCookies(res);
+    res.status(204).end();
   } catch (error: any) {
     console.error("Logout error:", error);
     res.status(500).json({ error: "Logout failed" });
@@ -264,22 +263,12 @@ router.post("/logout", authenticateToken, async (req: AuthRequest, res: ExpressR
 });
 
 // Get current user
-router.get("/me", authenticateToken, async (req: AuthRequest, res: ExpressResponse) => {
-  try {
-    const [user] = await db.select().from(schema.users)
-      .where(eq(schema.users.id, req.user!.userId))
-      .limit(1);
-
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
-    }
-
-    const { password, ...userWithoutPassword } = user;
-    res.json(userWithoutPassword);
-  } catch (error: any) {
-    console.error("Get user error:", error);
-    res.status(500).json({ error: "Failed to get user" });
+router.get("/me", authenticateToken, (req: AuthenticatedRequest, res: ExpressResponse) => {
+  if (!req.user) {
+    return res.status(401).json({ error: "Authentication required" });
   }
+
+  res.json({ user: req.user });
 });
 
 export default router;

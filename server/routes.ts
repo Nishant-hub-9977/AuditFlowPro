@@ -20,7 +20,7 @@ import {
   insertFileSchema,
   insertFollowUpActionSchema,
   tenants,
-} from "@shared/schema";
+} from "../shared/schema";
 import {
   authenticateToken,
   authorizeRoles,

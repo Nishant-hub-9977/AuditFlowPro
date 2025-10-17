@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { eq, desc, and, like, sql } from "drizzle-orm";
-import * as schema from "@shared/schema";
+import * as schema from "../shared/schema";
 import type {
   User, InsertUser,
   Industry, InsertIndustry,
@@ -14,7 +14,7 @@ import type {
   Lead, InsertLead,
   File, InsertFile,
   FollowUpAction, InsertFollowUpAction,
-} from "@shared/schema";
+} from "../shared/schema";
 
 export interface IStorage {
   // Users

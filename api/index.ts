@@ -4,6 +4,6 @@ import app from "../server/app";
 
 const handler = serverless(app);
 
-export default function vercelHandler(req: VercelRequest, res: VercelResponse) {
-	return handler(req as any, res as any);
+export default function (req: VercelRequest, res: VercelResponse) {
+  return handler(req as any, res as any);
 }

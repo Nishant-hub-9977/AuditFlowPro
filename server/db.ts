@@ -1,13 +1,42 @@
-import * as schema from "@shared/schema";
-import { neon } from "@neondatabase/serverless";
-import { drizzle } from "drizzle-orm/neon-http";
+import * as schema from "../shared/schema";
 
-const connectionString = process.env.DATABASE_URL;
+const url = process.env.DATABASE_URL!;
+if (!url) throw new Error("DATABASE_URL is required");
 
-if (!connectionString) {
-  throw new Error("DATABASE_URL environment variable is required");
+type PgDrizzle = typeof import("drizzle-orm/node-postgres")["drizzle"];
+type NeonDrizzle = typeof import("drizzle-orm/neon-http")["drizzle"];
+type NodePgClient = import("drizzle-orm/node-postgres").NodePgClient;
+type DrizzleAny = ReturnType<PgDrizzle> | ReturnType<NeonDrizzle>;
+
+const commonConfig = { schema, dialect: "postgresql" as const };
+
+let dbInstance: DrizzleAny | undefined;
+let closeDb = async () => {};
+
+async function init() {
+  if (url.includes("localhost") || url.includes("127.0.0.1")) {
+    const { Pool } = await import("pg");
+    const { drizzle } = await import("drizzle-orm/node-postgres");
+    const pool = new Pool({ connectionString: url });
+  const instance = drizzle(pool as unknown as NodePgClient, commonConfig);
+    dbInstance = instance;
+    closeDb = async () => pool.end().catch(() => {});
+    return instance;
+  }
+
+  const { neon } = await import("@neondatabase/serverless");
+  const { drizzle } = await import("drizzle-orm/neon-http");
+  const sql = neon(url);
+  const instance = drizzle(sql, commonConfig);
+  dbInstance = instance;
+  closeDb = async () => {};
+  return instance;
 }
 
-const sql = neon(connectionString);
-
-export const db = drizzle(sql, { schema });
+// initialize immediately
+export const dbPromise: Promise<DrizzleAny> = (async () => await init())();
+export async function getDb(): Promise<DrizzleAny> {
+  return dbInstance ?? (await dbPromise);
+}
+export { closeDb };
+export const db = await getDb();

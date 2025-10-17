@@ -1,22 +1,25 @@
-import express from 'express';
-import cors from 'cors';
-import 'dotenv/config';
-import authRouter from './authRoutes';
-import apiRouter from './routes';
-import { ViteDevServer } from 'vite';
+import express from "express";
+import cors from "cors";
+import cookieParser from "cookie-parser";
+import helmet from "helmet";
+import "dotenv/config";
+import authRouter from "./authRoutes";
+import apiRouter from "./routes";
 
 const app = express();
 
-const allowed = process.env.ALLOWED_ORIGIN || '*';
-app.use(cors({ origin: allowed, credentials: true }));
-
-app.use(express.json());
+app.use(helmet());
+app.use(cors({ origin: true, credentials: true }));
+app.use(express.json({ limit: "1mb" }));
+app.use(cookieParser());
 
 // Auth routes
-app.use('/api/auth', authRouter);
+app.use("/api/auth", authRouter);
 
 // API routes
-app.use('/api', apiRouter);
+app.use("/api", apiRouter);
+
+app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
 
 if (process.env.NODE_ENV === 'development') {
     // Development-specific setup
