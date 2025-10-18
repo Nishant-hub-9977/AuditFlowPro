@@ -1,6 +1,12 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
@@ -19,18 +25,25 @@ export default function Login() {
 
     try {
       setIsSubmitting(true);
-      const response = await apiRequest("POST", "/api/auth/login", { email, password });
+      const response = await apiRequest("POST", "/api/auth/login", {
+        email,
+        password,
+      });
       const data = await response.json();
 
       localStorage.setItem("accessToken", data.accessToken);
       localStorage.setItem("refreshToken", data.refreshToken);
 
-  showSuccessToast({ title: "Welcome back", description: "You are now signed in." });
+      showSuccessToast({
+        title: "Welcome back",
+        description: "You are now signed in.",
+      });
       navigate("/");
     } catch (error: any) {
       showErrorToast({
         title: "Login failed",
-        description: error?.message || "We could not sign you in with those credentials.",
+        description:
+          error?.message || "We could not sign you in with those credentials.",
       });
     } finally {
       setIsSubmitting(false);
@@ -46,7 +59,10 @@ export default function Login() {
       localStorage.setItem("accessToken", data.accessToken);
       localStorage.setItem("refreshToken", data.refreshToken);
 
-  showSuccessToast({ title: "Guest mode", description: "Exploring the workspace as a guest." });
+      showSuccessToast({
+        title: "Guest mode",
+        description: "Exploring the workspace as a guest.",
+      });
       navigate("/");
     } catch (error: any) {
       showErrorToast({
@@ -62,8 +78,12 @@ export default function Login() {
     <div className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
       <Card className="w-full max-w-md" data-testid="card-login">
         <CardHeader>
-          <CardTitle className="text-2xl font-semibold">Sign in to Audit Flow Pro</CardTitle>
-          <CardDescription>Use your work email or explore in guest mode.</CardDescription>
+          <CardTitle className="text-2xl font-semibold">
+            Sign in to Audit Flow Pro
+          </CardTitle>
+          <CardDescription>
+            Use your work email or explore in guest mode.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form className="space-y-4" onSubmit={handleSubmit}>
@@ -97,7 +117,12 @@ export default function Login() {
               />
             </div>
 
-            <Button type="submit" className="w-full" disabled={isSubmitting} data-testid="button-login">
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={isSubmitting}
+              data-testid="button-login"
+            >
               {isSubmitting ? "Signing in..." : "Sign In"}
             </Button>
           </form>

@@ -21,54 +21,81 @@ interface AuditDetailDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export function AuditDetailDialog({ audit, open, onOpenChange }: AuditDetailDialogProps) {
+export function AuditDetailDialog({
+  audit,
+  open,
+  onOpenChange,
+}: AuditDetailDialogProps) {
   const { toast } = useToast();
 
   const submitForReviewMutation = useMutation({
-    mutationFn: (auditId: string) => apiRequest("POST", `/api/audits/${auditId}/submit-for-review`),
+    mutationFn: (auditId: string) =>
+      apiRequest("POST", `/api/audits/${auditId}/submit-for-review`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/audits"] });
       toast({ title: "Success", description: "Audit submitted for review" });
       onOpenChange(false);
     },
     onError: (error: any) => {
-      toast({ title: "Error", description: error.message || "Failed to submit audit", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: error.message || "Failed to submit audit",
+        variant: "destructive",
+      });
     },
   });
 
   const approveMutation = useMutation({
-    mutationFn: (auditId: string) => apiRequest("POST", `/api/audits/${auditId}/approve`),
+    mutationFn: (auditId: string) =>
+      apiRequest("POST", `/api/audits/${auditId}/approve`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/audits"] });
       toast({ title: "Success", description: "Audit approved" });
       onOpenChange(false);
     },
     onError: (error: any) => {
-      toast({ title: "Error", description: error.message || "Failed to approve audit", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: error.message || "Failed to approve audit",
+        variant: "destructive",
+      });
     },
   });
 
   const rejectMutation = useMutation({
-    mutationFn: (auditId: string) => apiRequest("POST", `/api/audits/${auditId}/reject`),
+    mutationFn: (auditId: string) =>
+      apiRequest("POST", `/api/audits/${auditId}/reject`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/audits"] });
-      toast({ title: "Success", description: "Audit rejected and returned to draft" });
+      toast({
+        title: "Success",
+        description: "Audit rejected and returned to draft",
+      });
       onOpenChange(false);
     },
     onError: (error: any) => {
-      toast({ title: "Error", description: error.message || "Failed to reject audit", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: error.message || "Failed to reject audit",
+        variant: "destructive",
+      });
     },
   });
 
   const closeMutation = useMutation({
-    mutationFn: (auditId: string) => apiRequest("POST", `/api/audits/${auditId}/close`),
+    mutationFn: (auditId: string) =>
+      apiRequest("POST", `/api/audits/${auditId}/close`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/audits"] });
       toast({ title: "Success", description: "Audit closed" });
       onOpenChange(false);
     },
     onError: (error: any) => {
-      toast({ title: "Error", description: error.message || "Failed to close audit", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: error.message || "Failed to close audit",
+        variant: "destructive",
+      });
     },
   });
 
@@ -90,13 +117,16 @@ export function AuditDetailDialog({ audit, open, onOpenChange }: AuditDetailDial
   };
 
   const formatStatus = (status: string) => {
-    return status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+    return status
+      .split("_")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
   };
 
-  const canSubmitForReview = audit.status === 'draft';
-  const canApprove = audit.status === 'review';
-  const canReject = audit.status === 'review';
-  const canClose = audit.status === 'approved';
+  const canSubmitForReview = audit.status === "draft";
+  const canApprove = audit.status === "review";
+  const canReject = audit.status === "review";
+  const canClose = audit.status === "approved";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -104,12 +134,17 @@ export function AuditDetailDialog({ audit, open, onOpenChange }: AuditDetailDial
         <DialogHeader>
           <div className="flex items-center justify-between gap-4">
             <div className="flex-1 min-w-0">
-              <DialogTitle data-testid="text-audit-detail-id">{audit.auditNumber}</DialogTitle>
+              <DialogTitle data-testid="text-audit-detail-id">
+                {audit.auditNumber}
+              </DialogTitle>
               <DialogDescription data-testid="text-audit-detail-customer">
                 {audit.customerName}
               </DialogDescription>
             </div>
-            <Badge variant={getStatusVariant(audit.status)} data-testid="badge-audit-detail-status">
+            <Badge
+              variant={getStatusVariant(audit.status)}
+              data-testid="badge-audit-detail-status"
+            >
               {formatStatus(audit.status)}
             </Badge>
           </div>
@@ -118,8 +153,12 @@ export function AuditDetailDialog({ audit, open, onOpenChange }: AuditDetailDial
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Location</p>
-              <p className="mt-1" data-testid="text-audit-detail-location">{audit.siteLocation}</p>
+              <p className="text-sm font-medium text-muted-foreground">
+                Location
+              </p>
+              <p className="mt-1" data-testid="text-audit-detail-location">
+                {audit.siteLocation}
+              </p>
             </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground">Date</p>
@@ -128,16 +167,28 @@ export function AuditDetailDialog({ audit, open, onOpenChange }: AuditDetailDial
               </p>
             </div>
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Auditor</p>
-              <p className="mt-1" data-testid="text-audit-detail-auditor">{audit.auditorName}</p>
+              <p className="text-sm font-medium text-muted-foreground">
+                Auditor
+              </p>
+              <p className="mt-1" data-testid="text-audit-detail-auditor">
+                {audit.auditorName}
+              </p>
             </div>
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Industry ID</p>
-              <p className="mt-1" data-testid="text-audit-detail-industry">{audit.industryId || 'N/A'}</p>
+              <p className="text-sm font-medium text-muted-foreground">
+                Industry ID
+              </p>
+              <p className="mt-1" data-testid="text-audit-detail-industry">
+                {audit.industryId || "N/A"}
+              </p>
             </div>
             <div className="col-span-2">
-              <p className="text-sm font-medium text-muted-foreground">Audit Type ID</p>
-              <p className="mt-1" data-testid="text-audit-detail-audit-type">{audit.auditTypeId || 'N/A'}</p>
+              <p className="text-sm font-medium text-muted-foreground">
+                Audit Type ID
+              </p>
+              <p className="mt-1" data-testid="text-audit-detail-audit-type">
+                {audit.auditTypeId || "N/A"}
+              </p>
             </div>
           </div>
 
@@ -145,8 +196,8 @@ export function AuditDetailDialog({ audit, open, onOpenChange }: AuditDetailDial
 
           <div className="flex flex-wrap gap-2">
             {canSubmitForReview && (
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => submitForReviewMutation.mutate(audit.id)}
                 disabled={submitForReviewMutation.isPending}
                 data-testid="button-submit-for-review"
@@ -156,8 +207,8 @@ export function AuditDetailDialog({ audit, open, onOpenChange }: AuditDetailDial
               </Button>
             )}
             {canApprove && (
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => approveMutation.mutate(audit.id)}
                 disabled={approveMutation.isPending}
                 data-testid="button-approve"
@@ -167,8 +218,8 @@ export function AuditDetailDialog({ audit, open, onOpenChange }: AuditDetailDial
               </Button>
             )}
             {canReject && (
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => rejectMutation.mutate(audit.id)}
                 disabled={rejectMutation.isPending}
                 data-testid="button-reject"
@@ -178,8 +229,8 @@ export function AuditDetailDialog({ audit, open, onOpenChange }: AuditDetailDial
               </Button>
             )}
             {canClose && (
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => closeMutation.mutate(audit.id)}
                 disabled={closeMutation.isPending}
                 data-testid="button-close"

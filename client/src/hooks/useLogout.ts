@@ -21,7 +21,10 @@ export function useLogout() {
       localStorage.removeItem("accessToken");
       localStorage.removeItem("refreshToken");
       queryClient.clear();
-      toast({ title: "Signed out", description: "Your session has been cleared." });
+      toast({
+        title: "Signed out",
+        description: "Your session has been cleared.",
+      });
       navigate("/login");
     }
   }, [navigate, toast]);

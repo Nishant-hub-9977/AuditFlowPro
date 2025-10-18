@@ -21,8 +21,8 @@ app.use("/api", apiRouter);
 
 app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
 
-if (process.env.NODE_ENV === 'development') {
-    // Development-specific setup
+if (process.env.NODE_ENV === "development") {
+  // Development-specific setup
 }
 
 export default app;

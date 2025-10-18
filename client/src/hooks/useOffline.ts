@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
  * Tracks browser offline/online status.
  */
 export function useOffline(): { isOffline: boolean } {
-  const getStatus = () => (typeof navigator !== "undefined" ? !navigator.onLine : false);
+  const getStatus = () =>
+    typeof navigator !== "undefined" ? !navigator.onLine : false;
   const [isOffline, setIsOffline] = useState<boolean>(getStatus);
 
   useEffect(() => {

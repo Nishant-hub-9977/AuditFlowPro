@@ -65,7 +65,11 @@ export default function Settings() {
             Review your organization details and manage your session
           </p>
         </div>
-        <Button variant="outline" onClick={handleLogout} data-testid="button-logout">
+        <Button
+          variant="outline"
+          onClick={handleLogout}
+          data-testid="button-logout"
+        >
           <LogOut className="mr-2 h-4 w-4" />
           Logout
         </Button>
@@ -102,23 +106,37 @@ export default function Settings() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <p className="text-xs uppercase text-muted-foreground">Organization</p>
-                <p className="text-lg font-semibold" data-testid="text-organization-name">
+                <p className="text-xs uppercase text-muted-foreground">
+                  Organization
+                </p>
+                <p
+                  className="text-lg font-semibold"
+                  data-testid="text-organization-name"
+                >
                   {organization?.name ?? "Default Organization"}
                 </p>
               </div>
 
               <div className="grid gap-3 text-sm">
-                <div className="flex items-center gap-3" data-testid="text-subdomain">
+                <div
+                  className="flex items-center gap-3"
+                  data-testid="text-subdomain"
+                >
                   <span className="text-muted-foreground">Subdomain</span>
                   <span className="font-medium">
                     {organization?.subdomain || "Not configured"}
                   </span>
                 </div>
-                <div className="flex items-center gap-3" data-testid="text-created">
+                <div
+                  className="flex items-center gap-3"
+                  data-testid="text-created"
+                >
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                   <span>
-                    Created {organization?.createdAt ? format(new Date(organization.createdAt), "PPP") : "Unknown"}
+                    Created{" "}
+                    {organization?.createdAt
+                      ? format(new Date(organization.createdAt), "PPP")
+                      : "Unknown"}
                   </span>
                 </div>
               </div>
@@ -126,14 +144,26 @@ export default function Settings() {
               <Separator />
 
               <div className="grid gap-2 text-sm">
-                <p className="text-xs uppercase text-muted-foreground">Usage Overview</p>
-                <div className="flex justify-between" data-testid="metric-audits">
+                <p className="text-xs uppercase text-muted-foreground">
+                  Usage Overview
+                </p>
+                <div
+                  className="flex justify-between"
+                  data-testid="metric-audits"
+                >
                   <span className="text-muted-foreground">Audits</span>
-                  <span className="font-semibold">{data?.totals.audits ?? 0}</span>
+                  <span className="font-semibold">
+                    {data?.totals.audits ?? 0}
+                  </span>
                 </div>
-                <div className="flex justify-between" data-testid="metric-leads">
+                <div
+                  className="flex justify-between"
+                  data-testid="metric-leads"
+                >
                   <span className="text-muted-foreground">Leads</span>
-                  <span className="font-semibold">{data?.totals.leads ?? 0}</span>
+                  <span className="font-semibold">
+                    {data?.totals.leads ?? 0}
+                  </span>
                 </div>
               </div>
             </CardContent>
@@ -148,24 +178,37 @@ export default function Settings() {
                 <CardTitle className="text-base font-semibold">
                   {user?.fullName ?? "Guest User"}
                 </CardTitle>
-                <p className="text-sm text-muted-foreground">{user?.role ?? "auditor"}</p>
+                <p className="text-sm text-muted-foreground">
+                  {user?.role ?? "auditor"}
+                </p>
               </div>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
               <div className="flex items-center gap-2">
                 <Mail className="h-4 w-4 text-muted-foreground" />
-                <span data-testid="text-email">{user?.email ?? "guest@demo.com"}</span>
+                <span data-testid="text-email">
+                  {user?.email ?? "guest@demo.com"}
+                </span>
               </div>
               {user?.phone && (
-                <div className="flex items-center gap-2" data-testid="text-phone">
+                <div
+                  className="flex items-center gap-2"
+                  data-testid="text-phone"
+                >
                   <Phone className="h-4 w-4 text-muted-foreground" />
                   <span>{user.phone}</span>
                 </div>
               )}
-              <div className="flex items-center gap-2 text-muted-foreground" data-testid="text-user-created">
+              <div
+                className="flex items-center gap-2 text-muted-foreground"
+                data-testid="text-user-created"
+              >
                 <Calendar className="h-4 w-4" />
                 <span>
-                  Joined {user?.createdAt ? format(new Date(user.createdAt), "PPP") : "Unknown"}
+                  Joined{" "}
+                  {user?.createdAt
+                    ? format(new Date(user.createdAt), "PPP")
+                    : "Unknown"}
                 </span>
               </div>
             </CardContent>

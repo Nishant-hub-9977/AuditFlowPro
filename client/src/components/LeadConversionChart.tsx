@@ -1,5 +1,20 @@
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
 
 //todo: remove mock functionality
 const mockData = [
@@ -21,14 +36,18 @@ export function LeadConversionChart() {
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={mockData}>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-            <XAxis dataKey="stage" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+            <XAxis
+              dataKey="stage"
+              stroke="hsl(var(--muted-foreground))"
+              fontSize={12}
+            />
             <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
-            <Tooltip 
-              contentStyle={{ 
-                backgroundColor: "hsl(var(--popover))", 
+            <Tooltip
+              contentStyle={{
+                backgroundColor: "hsl(var(--popover))",
                 border: "1px solid hsl(var(--popover-border))",
-                borderRadius: "var(--radius)"
-              }} 
+                borderRadius: "var(--radius)",
+              }}
             />
             <Legend />
             <Bar dataKey="count" fill="hsl(var(--chart-1))" name="Leads" />

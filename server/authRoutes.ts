@@ -1,5 +1,8 @@
 import express from "express";
-import type { Request as ExpressRequest, Response as ExpressResponse } from "express";
+import type {
+  Request as ExpressRequest,
+  Response as ExpressResponse,
+} from "express";
 import { db } from "./db";
 import * as schema from "../shared/schema";
 import { and, eq } from "drizzle-orm";
@@ -19,7 +22,9 @@ import {
 
 const router = express.Router();
 
-type AuthenticatedRequest = ExpressRequest & { user?: import("./auth").TokenPayload };
+type AuthenticatedRequest = ExpressRequest & {
+  user?: import("./auth").TokenPayload;
+};
 
 interface RefreshCookiePayload {
   userId: string;
@@ -51,31 +56,38 @@ function decodeRefreshCookie(value: unknown): RefreshCookiePayload | null {
 router.post("/register", async (req: ExpressRequest, res: ExpressResponse) => {
   try {
     const data = schema.registerSchema.parse(req.body);
-    
+
     // Check if user already exists
-    const existingUser = await db.select().from(schema.users)
+    const existingUser = await db
+      .select()
+      .from(schema.users)
       .where(eq(schema.users.email, data.email))
       .limit(1);
-    
+
     if (existingUser.length > 0) {
       return res.status(400).json({ error: "User already exists" });
     }
 
     // Create tenant if tenantName provided, otherwise use default
     let tenantId: string;
-    
+
     if (data.tenantName) {
-      const [newTenant] = await db.insert(schema.tenants).values({
-        name: data.tenantName,
-        isActive: true,
-      }).returning();
+      const [newTenant] = await db
+        .insert(schema.tenants)
+        .values({
+          name: data.tenantName,
+          isActive: true,
+        })
+        .returning();
       tenantId = newTenant.id;
     } else {
       // Use default tenant
-      const [defaultTenant] = await db.select().from(schema.tenants)
+      const [defaultTenant] = await db
+        .select()
+        .from(schema.tenants)
         .where(eq(schema.tenants.subdomain, "default"))
         .limit(1);
-      
+
       if (!defaultTenant) {
         return res.status(500).json({ error: "Default tenant not found" });
       }
@@ -86,21 +98,34 @@ router.post("/register", async (req: ExpressRequest, res: ExpressResponse) => {
     const hashedPassword = await hashPassword(data.password);
 
     // Create user
-    const [newUser] = await db.insert(schema.users).values({
-      tenantId,
-      username: data.username,
-      email: data.email,
-      password: hashedPassword,
-      fullName: data.fullName,
-      role: "auditor", // Default role
-      isActive: true,
-    }).returning();
+    const [newUser] = await db
+      .insert(schema.users)
+      .values({
+        tenantId,
+        username: data.username,
+        email: data.email,
+        password: hashedPassword,
+        fullName: data.fullName,
+        role: "auditor", // Default role
+        isActive: true,
+      })
+      .returning();
 
-    const tokens = issueTokens({ id: newUser.id, role: newUser.role, tenantId: newUser.tenantId });
-    await persistRefreshToken(newUser.id, await hashRefreshToken(tokens.refreshToken));
+    const tokens = issueTokens({
+      id: newUser.id,
+      role: newUser.role,
+      tenantId: newUser.tenantId,
+    });
+    await persistRefreshToken(
+      newUser.id,
+      await hashRefreshToken(tokens.refreshToken),
+    );
 
     setAccessCookie(res, tokens.accessToken);
-    setRefreshCookie(res, encodeRefreshCookie({ userId: newUser.id, token: tokens.refreshToken }));
+    setRefreshCookie(
+      res,
+      encodeRefreshCookie({ userId: newUser.id, token: tokens.refreshToken }),
+    );
 
     res.status(201).json({
       user: {
@@ -122,11 +147,15 @@ router.post("/login", async (req: ExpressRequest, res: ExpressResponse) => {
     const data = schema.loginSchema.parse(req.body);
 
     // Find user by email
-    const [user] = await db.select().from(schema.users)
-      .where(and(
-        eq(schema.users.email, data.email),
-        eq(schema.users.isActive, true)
-      ))
+    const [user] = await db
+      .select()
+      .from(schema.users)
+      .where(
+        and(
+          eq(schema.users.email, data.email),
+          eq(schema.users.isActive, true),
+        ),
+      )
       .limit(1);
 
     if (!user) {
@@ -134,17 +163,30 @@ router.post("/login", async (req: ExpressRequest, res: ExpressResponse) => {
     }
 
     // Verify password
-    const isValidPassword = await comparePasswords(data.password, user.password);
-    
+    const isValidPassword = await comparePasswords(
+      data.password,
+      user.password,
+    );
+
     if (!isValidPassword) {
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
-    const tokens = issueTokens({ id: user.id, role: user.role, tenantId: user.tenantId });
-    await persistRefreshToken(user.id, await hashRefreshToken(tokens.refreshToken));
+    const tokens = issueTokens({
+      id: user.id,
+      role: user.role,
+      tenantId: user.tenantId,
+    });
+    await persistRefreshToken(
+      user.id,
+      await hashRefreshToken(tokens.refreshToken),
+    );
 
     setAccessCookie(res, tokens.accessToken);
-    setRefreshCookie(res, encodeRefreshCookie({ userId: user.id, token: tokens.refreshToken }));
+    setRefreshCookie(
+      res,
+      encodeRefreshCookie({ userId: user.id, token: tokens.refreshToken }),
+    );
 
     res.status(200).json({
       user: {
@@ -160,38 +202,58 @@ router.post("/login", async (req: ExpressRequest, res: ExpressResponse) => {
 });
 
 // Guest/Demo login - automatically log in as guest user
-router.post("/guest-login", async (req: ExpressRequest, res: ExpressResponse) => {
-  try {
-    // Find guest user
-    const [guestUser] = await db.select().from(schema.users)
-      .where(and(
-        eq(schema.users.email, "guest@auditflow.pro"),
-        eq(schema.users.isActive, true)
-      ))
-      .limit(1);
+router.post(
+  "/guest-login",
+  async (req: ExpressRequest, res: ExpressResponse) => {
+    try {
+      // Find guest user
+      const [guestUser] = await db
+        .select()
+        .from(schema.users)
+        .where(
+          and(
+            eq(schema.users.email, "guest@auditflow.pro"),
+            eq(schema.users.isActive, true),
+          ),
+        )
+        .limit(1);
 
-    if (!guestUser) {
-      return res.status(404).json({ error: "Guest user not found" });
-    }
+      if (!guestUser) {
+        return res.status(404).json({ error: "Guest user not found" });
+      }
 
-    const tokens = issueTokens({ id: guestUser.id, role: guestUser.role, tenantId: guestUser.tenantId });
-    await persistRefreshToken(guestUser.id, await hashRefreshToken(tokens.refreshToken));
-
-    setAccessCookie(res, tokens.accessToken);
-    setRefreshCookie(res, encodeRefreshCookie({ userId: guestUser.id, token: tokens.refreshToken }));
-
-    res.status(200).json({
-      user: {
+      const tokens = issueTokens({
         id: guestUser.id,
-        email: guestUser.email,
         role: guestUser.role,
-      },
-    });
-  } catch (error: any) {
-    console.error("Guest login error:", error);
-    res.status(500).json({ error: "Guest login failed" });
-  }
-});
+        tenantId: guestUser.tenantId,
+      });
+      await persistRefreshToken(
+        guestUser.id,
+        await hashRefreshToken(tokens.refreshToken),
+      );
+
+      setAccessCookie(res, tokens.accessToken);
+      setRefreshCookie(
+        res,
+        encodeRefreshCookie({
+          userId: guestUser.id,
+          token: tokens.refreshToken,
+        }),
+      );
+
+      res.status(200).json({
+        user: {
+          id: guestUser.id,
+          email: guestUser.email,
+          role: guestUser.role,
+        },
+      });
+    } catch (error: any) {
+      console.error("Guest login error:", error);
+      res.status(500).json({ error: "Guest login failed" });
+    }
+  },
+);
 
 // Refresh token
 router.post("/refresh", async (req: ExpressRequest, res: ExpressResponse) => {
@@ -203,7 +265,10 @@ router.post("/refresh", async (req: ExpressRequest, res: ExpressResponse) => {
       return res.status(401).json({ error: "Refresh token missing" });
     }
 
-    const record = await getValidRefreshToken(cookiePayload.userId, cookiePayload.token);
+    const record = await getValidRefreshToken(
+      cookiePayload.userId,
+      cookiePayload.token,
+    );
 
     if (!record) {
       clearAuthCookies(res);
@@ -224,11 +289,21 @@ router.post("/refresh", async (req: ExpressRequest, res: ExpressResponse) => {
 
     await revokeRefreshToken(cookiePayload.userId, record.token);
 
-    const tokens = issueTokens({ id: user.id, role: user.role, tenantId: user.tenantId });
-    await persistRefreshToken(user.id, await hashRefreshToken(tokens.refreshToken));
+    const tokens = issueTokens({
+      id: user.id,
+      role: user.role,
+      tenantId: user.tenantId,
+    });
+    await persistRefreshToken(
+      user.id,
+      await hashRefreshToken(tokens.refreshToken),
+    );
 
     setAccessCookie(res, tokens.accessToken);
-    setRefreshCookie(res, encodeRefreshCookie({ userId: user.id, token: tokens.refreshToken }));
+    setRefreshCookie(
+      res,
+      encodeRefreshCookie({ userId: user.id, token: tokens.refreshToken }),
+    );
 
     res.status(200).json({
       user: {
@@ -244,31 +319,42 @@ router.post("/refresh", async (req: ExpressRequest, res: ExpressResponse) => {
 });
 
 // Logout
-router.post("/logout", authenticateToken, async (req: AuthenticatedRequest, res: ExpressResponse) => {
-  try {
-    const cookiePayload = decodeRefreshCookie(req.cookies?.refreshToken);
-    if (cookiePayload) {
-      const record = await getValidRefreshToken(cookiePayload.userId, cookiePayload.token);
-      if (record) {
-        await revokeRefreshToken(cookiePayload.userId, record.token);
+router.post(
+  "/logout",
+  authenticateToken,
+  async (req: AuthenticatedRequest, res: ExpressResponse) => {
+    try {
+      const cookiePayload = decodeRefreshCookie(req.cookies?.refreshToken);
+      if (cookiePayload) {
+        const record = await getValidRefreshToken(
+          cookiePayload.userId,
+          cookiePayload.token,
+        );
+        if (record) {
+          await revokeRefreshToken(cookiePayload.userId, record.token);
+        }
       }
-    }
 
-    clearAuthCookies(res);
-    res.status(204).end();
-  } catch (error: any) {
-    console.error("Logout error:", error);
-    res.status(500).json({ error: "Logout failed" });
-  }
-});
+      clearAuthCookies(res);
+      res.status(204).end();
+    } catch (error: any) {
+      console.error("Logout error:", error);
+      res.status(500).json({ error: "Logout failed" });
+    }
+  },
+);
 
 // Get current user
-router.get("/me", authenticateToken, (req: AuthenticatedRequest, res: ExpressResponse) => {
-  if (!req.user) {
-    return res.status(401).json({ error: "Authentication required" });
-  }
+router.get(
+  "/me",
+  authenticateToken,
+  (req: AuthenticatedRequest, res: ExpressResponse) => {
+    if (!req.user) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
 
-  res.json({ user: req.user });
-});
+    res.json({ user: req.user });
+  },
+);
 
 export default router;

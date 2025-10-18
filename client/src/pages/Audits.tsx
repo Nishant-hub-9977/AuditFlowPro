@@ -142,7 +142,10 @@ const AuditMobileList = memo(({ audits, onSelect }: AuditListProps) => (
 AuditMobileList.displayName = "AuditMobileList";
 
 const AuditTable = memo(({ audits, onSelect }: AuditListProps) => (
-  <div className="hidden overflow-x-auto md:block" style={{ WebkitOverflowScrolling: "touch" }}>
+  <div
+    className="hidden overflow-x-auto md:block"
+    style={{ WebkitOverflowScrolling: "touch" }}
+  >
     <div className="min-w-[900px] rounded-lg border">
       <Table>
         <TableHeader>
@@ -159,7 +162,9 @@ const AuditTable = memo(({ audits, onSelect }: AuditListProps) => (
         <TableBody>
           {audits.map((audit) => (
             <TableRow key={audit.id} data-testid={`row-audit-${audit.id}`}>
-              <TableCell className="font-mono text-sm">{audit.auditNumber}</TableCell>
+              <TableCell className="font-mono text-sm">
+                {audit.auditNumber}
+              </TableCell>
               <TableCell>{audit.customerName}</TableCell>
               <TableCell>{audit.siteLocation}</TableCell>
               <TableCell>
@@ -196,7 +201,11 @@ export default function Audits() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedAudit, setSelectedAudit] = useState<Audit | null>(null);
 
-  const { data: audits = [], isLoading, isError } = useQuery<Audit[]>({
+  const {
+    data: audits = [],
+    isLoading,
+    isError,
+  } = useQuery<Audit[]>({
     queryKey: ["/api/audits"],
   });
 
@@ -216,12 +225,14 @@ export default function Audits() {
           audit.auditorName,
         ]
           .filter(
-            (value): value is string => typeof value === "string" && value.length > 0,
+            (value): value is string =>
+              typeof value === "string" && value.length > 0,
           )
           .some((value) => value.toLowerCase().includes(normalizedTerm));
       })
       .sort(
-        (a, b) => new Date(b.auditDate).getTime() - new Date(a.auditDate).getTime(),
+        (a, b) =>
+          new Date(b.auditDate).getTime() - new Date(a.auditDate).getTime(),
       );
   }, [audits, searchTerm, statusFilter]);
 
@@ -230,7 +241,9 @@ export default function Audits() {
   }, []);
 
   const statusLabel = useMemo(
-    () => statusOptions.find((option) => option.value === statusFilter)?.label ?? "All Statuses",
+    () =>
+      statusOptions.find((option) => option.value === statusFilter)?.label ??
+      "All Statuses",
     [statusFilter],
   );
 
@@ -245,7 +258,10 @@ export default function Audits() {
             Review active audits, monitor statuses, and assign follow-ups
           </p>
         </div>
-        <Button onClick={() => setIsCreateOpen(true)} data-testid="button-create-audit">
+        <Button
+          onClick={() => setIsCreateOpen(true)}
+          data-testid="button-create-audit"
+        >
           <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
           Create Audit
         </Button>
@@ -291,18 +307,28 @@ export default function Audits() {
         </div>
       ) : isError ? (
         <div className="flex items-center justify-center py-12">
-          <p className="text-sm text-destructive">Unable to load audits. Please try again.</p>
+          <p className="text-sm text-destructive">
+            Unable to load audits. Please try again.
+          </p>
         </div>
       ) : filteredAudits.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-12 text-center" data-testid="empty-audits">
-          <p className="text-muted-foreground">No audits matched your filters</p>
+        <div
+          className="flex flex-col items-center justify-center py-12 text-center"
+          data-testid="empty-audits"
+        >
+          <p className="text-muted-foreground">
+            No audits matched your filters
+          </p>
           <p className="mt-1 text-sm text-muted-foreground">
             Adjust the filters or create a new audit to get started
           </p>
         </div>
       ) : (
         <>
-          <AuditMobileList audits={filteredAudits} onSelect={handleSelectAudit} />
+          <AuditMobileList
+            audits={filteredAudits}
+            onSelect={handleSelectAudit}
+          />
           <AuditTable audits={filteredAudits} onSelect={handleSelectAudit} />
         </>
       )}

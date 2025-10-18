@@ -17,7 +17,11 @@ type PriorityVariant = "default" | "secondary" | "destructive" | "outline";
 const statusColumns: { id: string; title: string; emptyLabel: string }[] = [
   { id: "new", title: "New", emptyLabel: "No new leads" },
   { id: "qualified", title: "Qualified", emptyLabel: "No qualified leads" },
-  { id: "in_progress", title: "In Progress", emptyLabel: "No in-progress leads" },
+  {
+    id: "in_progress",
+    title: "In Progress",
+    emptyLabel: "No in-progress leads",
+  },
   { id: "converted", title: "Converted", emptyLabel: "No converted leads" },
   { id: "closed", title: "Closed", emptyLabel: "No closed leads" },
 ];
@@ -108,7 +112,7 @@ export function LeadKanban({
   }
 
   return (
-  <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+    <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
       {groupedLeads.map((column) => (
         <div key={column.id} className="space-y-3">
           <div className="flex items-center justify-between">
@@ -119,116 +123,131 @@ export function LeadKanban({
           </div>
           <div className="space-y-2">
             {column.leads.map((lead) => {
-              const handleCardKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-                if (event.key === "Enter" || event.key === " " || event.key === "Spacebar" || event.key === "Space") {
+              const handleCardKeyDown = (
+                event: KeyboardEvent<HTMLDivElement>,
+              ) => {
+                if (
+                  event.key === "Enter" ||
+                  event.key === " " ||
+                  event.key === "Spacebar" ||
+                  event.key === "Space"
+                ) {
                   event.preventDefault();
                   onLeadSelect?.(lead);
                 }
               };
 
               return (
-              <Card
-                key={lead.id}
-                className="hover-elevate cursor-pointer transition-shadow duration-150"
-                data-testid={`lead-card-${lead.id}`}
-                onClick={() => onLeadSelect?.(lead)}
-                role="button"
-                tabIndex={0}
-                aria-label={`${lead.companyName} lead details`}
-                onKeyDown={handleCardKeyDown}
-              >
-                <CardHeader className="flex flex-col gap-3 p-4 pb-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 space-y-1">
-                      <p className="text-sm font-semibold leading-tight">
-                        {lead.companyName}
-                      </p>
-                      <p className="text-xs font-mono uppercase tracking-wide text-muted-foreground">
-                        {lead.leadNumber}
-                      </p>
-                    </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 rounded-full"
-                          data-testid={`lead-actions-${lead.id}`}
+                <Card
+                  key={lead.id}
+                  className="hover-elevate cursor-pointer transition-shadow duration-150"
+                  data-testid={`lead-card-${lead.id}`}
+                  onClick={() => onLeadSelect?.(lead)}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`${lead.companyName} lead details`}
+                  onKeyDown={handleCardKeyDown}
+                >
+                  <CardHeader className="flex flex-col gap-3 p-4 pb-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 space-y-1">
+                        <p className="text-sm font-semibold leading-tight">
+                          {lead.companyName}
+                        </p>
+                        <p className="text-xs font-mono uppercase tracking-wide text-muted-foreground">
+                          {lead.leadNumber}
+                        </p>
+                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 rounded-full"
+                            data-testid={`lead-actions-${lead.id}`}
+                            onClick={(event) => event.stopPropagation()}
+                            aria-label={`Lead actions for ${lead.companyName}`}
+                            aria-haspopup="menu"
+                          >
+                            <MoreVertical
+                              className="h-4 w-4"
+                              aria-hidden="true"
+                            />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent
+                          align="end"
+                          className="w-48"
                           onClick={(event) => event.stopPropagation()}
-                          aria-label={`Lead actions for ${lead.companyName}`}
-                          aria-haspopup="menu"
                         >
-                          <MoreVertical className="h-4 w-4" aria-hidden="true" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent
-                        align="end"
-                        className="w-48"
-                        onClick={(event) => event.stopPropagation()}
-                      >
-                        <DropdownMenuItem
-                          onSelect={() => {
-                            onLeadView?.(lead);
-                            onLeadSelect?.(lead);
-                          }}
-                          data-testid={`action-view-${lead.id}`}
-                        >
-                          View Details
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onSelect={() => onLeadEdit?.(lead)}
-                          data-testid={`action-edit-${lead.id}`}
-                        >
-                          Edit Lead
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onSelect={() => onLeadAssign?.(lead)}
-                          data-testid={`action-assign-${lead.id}`}
-                        >
-                          Assign Owner
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          disabled={lead.status !== "in_progress" && lead.status !== "qualified"}
-                          onSelect={() => onLeadConvert?.(lead)}
-                          data-testid={`action-convert-${lead.id}`}
-                        >
-                          Convert to Audit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          disabled={lead.status === "closed"}
-                          onSelect={() => onLeadClose?.(lead)}
-                          data-testid={`action-close-${lead.id}`}
-                        >
-                          Close Lead
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <User className="h-3 w-3" aria-hidden="true" />
-                    <span className="truncate">{lead.contactPerson}</span>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-3 p-4 pt-0">
-                  <div className="flex items-center justify-between text-sm">
-                    <Badge variant={priorityVariants[lead.priority]}>
-                      {formatPriority(lead.priority)}
-                    </Badge>
-                    <span className="text-sm font-semibold">
-                      {formatCurrency(lead.estimatedValue ?? null)}
-                    </span>
-                  </div>
-                  <div className="space-y-1 text-xs text-muted-foreground">
-                    <p className="truncate">{lead.email}</p>
-                    {lead.phone && <p>{lead.phone}</p>}
-                  </div>
-                </CardContent>
-              </Card>
+                          <DropdownMenuItem
+                            onSelect={() => {
+                              onLeadView?.(lead);
+                              onLeadSelect?.(lead);
+                            }}
+                            data-testid={`action-view-${lead.id}`}
+                          >
+                            View Details
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onSelect={() => onLeadEdit?.(lead)}
+                            data-testid={`action-edit-${lead.id}`}
+                          >
+                            Edit Lead
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onSelect={() => onLeadAssign?.(lead)}
+                            data-testid={`action-assign-${lead.id}`}
+                          >
+                            Assign Owner
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            disabled={
+                              lead.status !== "in_progress" &&
+                              lead.status !== "qualified"
+                            }
+                            onSelect={() => onLeadConvert?.(lead)}
+                            data-testid={`action-convert-${lead.id}`}
+                          >
+                            Convert to Audit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            disabled={lead.status === "closed"}
+                            onSelect={() => onLeadClose?.(lead)}
+                            data-testid={`action-close-${lead.id}`}
+                          >
+                            Close Lead
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <User className="h-3 w-3" aria-hidden="true" />
+                      <span className="truncate">{lead.contactPerson}</span>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-3 p-4 pt-0">
+                    <div className="flex items-center justify-between text-sm">
+                      <Badge variant={priorityVariants[lead.priority]}>
+                        {formatPriority(lead.priority)}
+                      </Badge>
+                      <span className="text-sm font-semibold">
+                        {formatCurrency(lead.estimatedValue ?? null)}
+                      </span>
+                    </div>
+                    <div className="space-y-1 text-xs text-muted-foreground">
+                      <p className="truncate">{lead.email}</p>
+                      {lead.phone && <p>{lead.phone}</p>}
+                    </div>
+                  </CardContent>
+                </Card>
               );
             })}
             {column.leads.length === 0 && (
               <div className="rounded-lg border-2 border-dashed border-muted p-6 text-center">
-                <p className="text-sm text-muted-foreground">{column.emptyLabel}</p>
+                <p className="text-sm text-muted-foreground">
+                  {column.emptyLabel}
+                </p>
                 {column.id === "new" && onCreateLead && (
                   <Button
                     variant="ghost"

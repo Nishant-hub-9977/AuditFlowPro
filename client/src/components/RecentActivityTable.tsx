@@ -42,7 +42,10 @@ const mockActivities = [
   },
 ];
 
-const statusColors: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+const statusColors: Record<
+  string,
+  "default" | "secondary" | "destructive" | "outline"
+> = {
   Completed: "default",
   "In Progress": "secondary",
   Open: "outline",
@@ -55,7 +58,9 @@ export function RecentActivityTable() {
   return (
     <Card data-testid="table-recent-activity">
       <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
-        <CardTitle className="text-lg font-semibold tracking-tight">Recent Activity</CardTitle>
+        <CardTitle className="text-lg font-semibold tracking-tight">
+          Recent Activity
+        </CardTitle>
         <Button variant="outline" size="sm" data-testid="button-view-all">
           View All
         </Button>
@@ -68,7 +73,8 @@ export function RecentActivityTable() {
           <div className="min-w-[800px]">
             <Table>
               <caption className="sr-only">
-                Summary of recent audit and lead activity with actions to view or edit each record.
+                Summary of recent audit and lead activity with actions to view
+                or edit each record.
               </caption>
               <TableHeader>
                 <TableRow>
@@ -79,7 +85,9 @@ export function RecentActivityTable() {
                   <TableHead scope="col">Status</TableHead>
                   <TableHead scope="col">Date</TableHead>
                   <TableHead scope="col">Auditor</TableHead>
-                  <TableHead scope="col" className="text-right">Actions</TableHead>
+                  <TableHead scope="col" className="text-right">
+                    Actions
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -89,16 +97,22 @@ export function RecentActivityTable() {
                       key={activity.id}
                       data-testid={`row-activity-${activity.id}`}
                     >
-                      <TableCell className="font-mono text-sm">{activity.id}</TableCell>
+                      <TableCell className="font-mono text-sm">
+                        {activity.id}
+                      </TableCell>
                       <TableCell>{activity.type}</TableCell>
                       <TableCell>{activity.customer}</TableCell>
                       <TableCell>{activity.industry}</TableCell>
                       <TableCell>
-                        <Badge variant={statusColors[activity.status] || "outline"}>
+                        <Badge
+                          variant={statusColors[activity.status] || "outline"}
+                        >
                           {activity.status}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-muted-foreground">{activity.date}</TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {activity.date}
+                      </TableCell>
                       <TableCell>{activity.auditor}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
@@ -126,9 +140,12 @@ export function RecentActivityTable() {
                   <TableRow>
                     <TableCell colSpan={8} className="py-10 text-center">
                       <div className="space-y-2">
-                        <p className="font-medium text-foreground/90">No activity yet</p>
+                        <p className="font-medium text-foreground/90">
+                          No activity yet
+                        </p>
                         <p className="text-sm text-muted-foreground">
-                          Recent audits and leads will appear here once the team starts working.
+                          Recent audits and leads will appear here once the team
+                          starts working.
                         </p>
                       </div>
                     </TableCell>

@@ -1,16 +1,40 @@
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { TrendingUp, Users, BarChart3, DollarSign, Download } from "lucide-react";
+import {
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
+import {
+  TrendingUp,
+  Users,
+  BarChart3,
+  DollarSign,
+  Download,
+} from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 
 const CHART_COLORS = [
-  'hsl(var(--chart-1))',
-  'hsl(var(--chart-2))',
-  'hsl(var(--chart-3))',
-  'hsl(var(--chart-4))',
-  'hsl(var(--chart-5))',
+  "hsl(var(--chart-1))",
+  "hsl(var(--chart-2))",
+  "hsl(var(--chart-3))",
+  "hsl(var(--chart-4))",
+  "hsl(var(--chart-5))",
 ];
 
 interface AuditReports {
@@ -30,9 +54,10 @@ interface LeadReports {
 }
 
 export default function Reports() {
-  const { data: auditReports, isLoading: auditLoading } = useQuery<AuditReports>({
-    queryKey: ["/api/reports/audits"],
-  });
+  const { data: auditReports, isLoading: auditLoading } =
+    useQuery<AuditReports>({
+      queryKey: ["/api/reports/audits"],
+    });
 
   const { data: leadReports, isLoading: leadLoading } = useQuery<LeadReports>({
     queryKey: ["/api/reports/leads"],
@@ -42,7 +67,10 @@ export default function Reports() {
 
   const handleExportAudits = async () => {
     try {
-      const response = await apiRequest("GET", "/api/reports/audits/export/csv");
+      const response = await apiRequest(
+        "GET",
+        "/api/reports/audits/export/csv",
+      );
 
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
@@ -141,27 +169,37 @@ export default function Reports() {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <Card data-testid="card-total-leads">
                 <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Leads</CardTitle>
+                  <CardTitle className="text-sm font-medium">
+                    Total Leads
+                  </CardTitle>
                   <Users className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{leadReports?.totalLeads || 0}</div>
+                  <div className="text-2xl font-bold">
+                    {leadReports?.totalLeads || 0}
+                  </div>
                 </CardContent>
               </Card>
 
               <Card data-testid="card-conversion-rate">
                 <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Conversion Rate</CardTitle>
+                  <CardTitle className="text-sm font-medium">
+                    Conversion Rate
+                  </CardTitle>
                   <TrendingUp className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{leadReports?.conversionRate || 0}%</div>
+                  <div className="text-2xl font-bold">
+                    {leadReports?.conversionRate || 0}%
+                  </div>
                 </CardContent>
               </Card>
 
               <Card data-testid="card-total-value">
                 <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Est. Value</CardTitle>
+                  <CardTitle className="text-sm font-medium">
+                    Total Est. Value
+                  </CardTitle>
                   <DollarSign className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
@@ -173,11 +211,15 @@ export default function Reports() {
 
               <Card data-testid="card-total-audits">
                 <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Audits</CardTitle>
+                  <CardTitle className="text-sm font-medium">
+                    Total Audits
+                  </CardTitle>
                   <BarChart3 className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{auditReports?.totalAudits || 0}</div>
+                  <div className="text-2xl font-bold">
+                    {auditReports?.totalAudits || 0}
+                  </div>
                 </CardContent>
               </Card>
             </div>
@@ -188,23 +230,28 @@ export default function Reports() {
             <Card data-testid="chart-leads-by-status">
               <CardHeader>
                 <CardTitle>Leads by Status</CardTitle>
-                <CardDescription>Distribution of leads across different stages</CardDescription>
+                <CardDescription>
+                  Distribution of leads across different stages
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
                   <BarChart data={leadReports?.leadsByStatus || []}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis 
-                      dataKey="status" 
+                    <XAxis
+                      dataKey="status"
                       tickFormatter={formatStatus}
                       angle={-45}
                       textAnchor="end"
                       height={80}
                     />
                     <YAxis />
-                    <Tooltip 
+                    <Tooltip
                       labelFormatter={formatStatus}
-                      contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))' }}
+                      contentStyle={{
+                        backgroundColor: "hsl(var(--background))",
+                        border: "1px solid hsl(var(--border))",
+                      }}
                     />
                     <Bar dataKey="count" fill={CHART_COLORS[0]} />
                   </BarChart>
@@ -215,7 +262,9 @@ export default function Reports() {
             <Card data-testid="chart-leads-by-priority">
               <CardHeader>
                 <CardTitle>Leads by Priority</CardTitle>
-                <CardDescription>Priority distribution of active leads</CardDescription>
+                <CardDescription>
+                  Priority distribution of active leads
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
@@ -225,7 +274,7 @@ export default function Reports() {
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      label={({ priority, percent }) => 
+                      label={({ priority, percent }) =>
                         `${formatPriority(priority)}: ${(percent * 100).toFixed(0)}%`
                       }
                       outerRadius={80}
@@ -234,12 +283,18 @@ export default function Reports() {
                       nameKey="priority"
                     >
                       {leadReports?.leadsByPriority?.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={CHART_COLORS[index % CHART_COLORS.length]}
+                        />
                       ))}
                     </Pie>
-                    <Tooltip 
+                    <Tooltip
                       labelFormatter={formatPriority}
-                      contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))' }}
+                      contentStyle={{
+                        backgroundColor: "hsl(var(--background))",
+                        border: "1px solid hsl(var(--border))",
+                      }}
                     />
                   </PieChart>
                 </ResponsiveContainer>
@@ -252,23 +307,28 @@ export default function Reports() {
             <Card data-testid="chart-audits-by-status">
               <CardHeader>
                 <CardTitle>Audits by Status</CardTitle>
-                <CardDescription>Current audit workflow distribution</CardDescription>
+                <CardDescription>
+                  Current audit workflow distribution
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
                   <BarChart data={auditReports?.auditsByStatus || []}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis 
-                      dataKey="status" 
+                    <XAxis
+                      dataKey="status"
                       tickFormatter={formatStatus}
                       angle={-45}
                       textAnchor="end"
                       height={80}
                     />
                     <YAxis />
-                    <Tooltip 
+                    <Tooltip
                       labelFormatter={formatStatus}
-                      contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))' }}
+                      contentStyle={{
+                        backgroundColor: "hsl(var(--background))",
+                        border: "1px solid hsl(var(--border))",
+                      }}
                     />
                     <Bar dataKey="count" fill={CHART_COLORS[1]} />
                   </BarChart>
@@ -279,7 +339,9 @@ export default function Reports() {
             <Card data-testid="chart-audits-by-type">
               <CardHeader>
                 <CardTitle>Audits by Type</CardTitle>
-                <CardDescription>Distribution across audit types</CardDescription>
+                <CardDescription>
+                  Distribution across audit types
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
@@ -289,7 +351,7 @@ export default function Reports() {
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      label={({ auditTypeName, percent }) => 
+                      label={({ auditTypeName, percent }) =>
                         `${auditTypeName}: ${(percent * 100).toFixed(0)}%`
                       }
                       outerRadius={80}
@@ -298,11 +360,17 @@ export default function Reports() {
                       nameKey="auditTypeName"
                     >
                       {auditReports?.auditsByType?.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={CHART_COLORS[index % CHART_COLORS.length]}
+                        />
                       ))}
                     </Pie>
-                    <Tooltip 
-                      contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))' }}
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "hsl(var(--background))",
+                        border: "1px solid hsl(var(--border))",
+                      }}
                     />
                   </PieChart>
                 </ResponsiveContainer>
@@ -315,21 +383,26 @@ export default function Reports() {
             <Card data-testid="chart-leads-by-industry">
               <CardHeader>
                 <CardTitle>Leads by Industry</CardTitle>
-                <CardDescription>Lead distribution across industries</CardDescription>
+                <CardDescription>
+                  Lead distribution across industries
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
                   <BarChart data={leadReports?.leadsByIndustry || []}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis 
+                    <XAxis
                       dataKey="industryName"
                       angle={-45}
                       textAnchor="end"
                       height={80}
                     />
                     <YAxis />
-                    <Tooltip 
-                      contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))' }}
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "hsl(var(--background))",
+                        border: "1px solid hsl(var(--border))",
+                      }}
                     />
                     <Bar dataKey="count" fill={CHART_COLORS[2]} />
                   </BarChart>
@@ -340,21 +413,26 @@ export default function Reports() {
             <Card data-testid="chart-audits-by-industry">
               <CardHeader>
                 <CardTitle>Audits by Industry</CardTitle>
-                <CardDescription>Audit distribution across industries</CardDescription>
+                <CardDescription>
+                  Audit distribution across industries
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
                   <BarChart data={auditReports?.auditsByIndustry || []}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis 
+                    <XAxis
                       dataKey="industryName"
                       angle={-45}
                       textAnchor="end"
                       height={80}
                     />
                     <YAxis />
-                    <Tooltip 
-                      contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))' }}
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "hsl(var(--background))",
+                        border: "1px solid hsl(var(--border))",
+                      }}
                     />
                     <Bar dataKey="count" fill={CHART_COLORS[3]} />
                   </BarChart>

@@ -50,7 +50,10 @@ interface CreateAuditDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export function CreateAuditDialog({ open, onOpenChange }: CreateAuditDialogProps) {
+export function CreateAuditDialog({
+  open,
+  onOpenChange,
+}: CreateAuditDialogProps) {
   const { toast } = useToast();
 
   const { data: industries = [] } = useQuery<Industry[]>({
@@ -112,15 +115,19 @@ export function CreateAuditDialog({ open, onOpenChange }: CreateAuditDialogProps
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" data-testid="dialog-create-audit">
+      <DialogContent
+        className="max-w-2xl max-h-[90vh] overflow-y-auto"
+        data-testid="dialog-create-audit"
+      >
         <DialogHeader>
           <DialogTitle>Create New Audit</DialogTitle>
-          <DialogDescription>
-            Enter the audit details below
-          </DialogDescription>
+          <DialogDescription>Enter the audit details below</DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+          <form
+            onSubmit={form.handleSubmit(handleSubmit)}
+            className="space-y-4"
+          >
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -142,7 +149,11 @@ export function CreateAuditDialog({ open, onOpenChange }: CreateAuditDialogProps
                   <FormItem>
                     <FormLabel>Audit Date</FormLabel>
                     <FormControl>
-                      <Input type="date" {...field} data-testid="input-audit-date" />
+                      <Input
+                        type="date"
+                        {...field}
+                        data-testid="input-audit-date"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -157,7 +168,11 @@ export function CreateAuditDialog({ open, onOpenChange }: CreateAuditDialogProps
                 <FormItem>
                   <FormLabel>Customer Name</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="Enter customer name" data-testid="input-customer-name" />
+                    <Input
+                      {...field}
+                      placeholder="Enter customer name"
+                      data-testid="input-customer-name"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -171,7 +186,11 @@ export function CreateAuditDialog({ open, onOpenChange }: CreateAuditDialogProps
                 <FormItem>
                   <FormLabel>Customer ID</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="Enter customer ID" data-testid="input-customer-id" />
+                    <Input
+                      {...field}
+                      placeholder="Enter customer ID"
+                      data-testid="input-customer-id"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -185,7 +204,11 @@ export function CreateAuditDialog({ open, onOpenChange }: CreateAuditDialogProps
                 <FormItem>
                   <FormLabel>Site Location</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="Enter site location" data-testid="input-site-location" />
+                    <Input
+                      {...field}
+                      placeholder="Enter site location"
+                      data-testid="input-site-location"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -199,7 +222,11 @@ export function CreateAuditDialog({ open, onOpenChange }: CreateAuditDialogProps
                 <FormItem>
                   <FormLabel>Auditor Name</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="Enter auditor name" data-testid="input-auditor-name" />
+                    <Input
+                      {...field}
+                      placeholder="Enter auditor name"
+                      data-testid="input-auditor-name"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -265,9 +292,9 @@ export function CreateAuditDialog({ open, onOpenChange }: CreateAuditDialogProps
                 <FormItem>
                   <FormLabel>Geo-Location (Optional)</FormLabel>
                   <FormControl>
-                    <Textarea 
-                      {...field} 
-                      placeholder="Enter geo-location coordinates or address" 
+                    <Textarea
+                      {...field}
+                      placeholder="Enter geo-location coordinates or address"
                       data-testid="input-geo-location"
                       rows={2}
                     />

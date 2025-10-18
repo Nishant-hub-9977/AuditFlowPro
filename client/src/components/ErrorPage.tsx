@@ -18,7 +18,13 @@ interface ErrorPageProps {
   };
 }
 
-export function ErrorPage({ title, description, icon, primaryAction, secondaryAction }: ErrorPageProps) {
+export function ErrorPage({
+  title,
+  description,
+  icon,
+  primaryAction,
+  secondaryAction,
+}: ErrorPageProps) {
   const [, navigate] = useLocation();
 
   const handlePrimary = () => {

@@ -43,7 +43,10 @@ function logApiError(method: string, url: string, res: Response, body: string) {
   console.groupEnd();
 }
 
-async function throwIfResNotOk(res: Response, context: { method: string; url: string }) {
+async function throwIfResNotOk(
+  res: Response,
+  context: { method: string; url: string },
+) {
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;
     logApiError(context.method, context.url, res, text);
@@ -61,8 +64,12 @@ function getAuthHeaders(): Record<string, string> {
 
 export function getApiBaseUrl(): string {
   const envBase =
-    (typeof import.meta !== "undefined" && import.meta.env && (import.meta.env.VITE_API_BASE_URL as string)) ||
-    (typeof process !== "undefined" ? (process.env.VITE_API_BASE_URL as string) : "");
+    (typeof import.meta !== "undefined" &&
+      import.meta.env &&
+      (import.meta.env.VITE_API_BASE_URL as string)) ||
+    (typeof process !== "undefined"
+      ? (process.env.VITE_API_BASE_URL as string)
+      : "");
   return envBase ? envBase.replace(/\/$/, "") : "";
 }
 
@@ -111,7 +118,10 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const target = typeof queryKey[0] === "string" ? (queryKey[0] as string) : queryKey.join("/");
+    const target =
+      typeof queryKey[0] === "string"
+        ? (queryKey[0] as string)
+        : queryKey.join("/");
     const res = await fetch(buildUrl(target), {
       headers: getAuthHeaders(),
       credentials: "include",

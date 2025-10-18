@@ -28,16 +28,16 @@ const Settings = lazy(() => import("@/pages/Settings"));
 function Router() {
   return (
     <Switch>
-  <Route path="/" component={Dashboard} />
-  <Route path="/audits" component={Audits} />
-  <Route path="/leads" component={Leads} />
-  <Route path="/reports" component={Reports} />
-  <Route path="/master-data" component={MasterData} />
-  <Route path="/settings" component={Settings} />
-  <Route path="/login" component={Login} />
-    <Route path="/401" component={Unauthorized} />
-    <Route path="/403" component={Forbidden} />
-    <Route path="/500" component={ServerError} />
+      <Route path="/" component={Dashboard} />
+      <Route path="/audits" component={Audits} />
+      <Route path="/leads" component={Leads} />
+      <Route path="/reports" component={Reports} />
+      <Route path="/master-data" component={MasterData} />
+      <Route path="/settings" component={Settings} />
+      <Route path="/login" component={Login} />
+      <Route path="/401" component={Unauthorized} />
+      <Route path="/403" component={Forbidden} />
+      <Route path="/500" component={ServerError} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -76,7 +76,13 @@ export default function App() {
                 <OfflineBanner />
                 <div className="flex-1 overflow-auto p-6">
                   <ErrorBoundary>
-                    <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">Loading…</div>}>
+                    <Suspense
+                      fallback={
+                        <div className="p-6 text-sm text-muted-foreground">
+                          Loading…
+                        </div>
+                      }
+                    >
                       <Router />
                     </Suspense>
                   </ErrorBoundary>

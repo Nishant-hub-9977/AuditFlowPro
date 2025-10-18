@@ -89,8 +89,12 @@ export default function Dashboard() {
 
       {isError ? (
         <div className="rounded-lg border border-dashed border-destructive/60 bg-destructive/5 p-6 text-center">
-          <p className="font-medium text-destructive">We couldn't load dashboard insights.</p>
-          <p className="mt-1 text-sm text-destructive/80">Check your connection or try again.</p>
+          <p className="font-medium text-destructive">
+            We couldn't load dashboard insights.
+          </p>
+          <p className="mt-1 text-sm text-destructive/80">
+            Check your connection or try again.
+          </p>
           <Button className="mt-4" variant="outline" onClick={() => refetch()}>
             Retry loading data
           </Button>

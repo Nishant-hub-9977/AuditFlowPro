@@ -1,5 +1,18 @@
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  Legend,
+  Tooltip,
+} from "recharts";
 
 //todo: remove mock functionality
 const mockData = [
@@ -14,7 +27,9 @@ export function AuditStatusChart() {
     <Card data-testid="chart-audit-status">
       <CardHeader>
         <CardTitle>Audit Status Distribution</CardTitle>
-        <CardDescription>Current audit stages across all projects</CardDescription>
+        <CardDescription>
+          Current audit stages across all projects
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={300}>
@@ -24,7 +39,9 @@ export function AuditStatusChart() {
               cx="50%"
               cy="50%"
               labelLine={false}
-              label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+              label={({ name, percent }) =>
+                `${name} ${(percent * 100).toFixed(0)}%`
+              }
               outerRadius={80}
               fill="#8884d8"
               dataKey="value"

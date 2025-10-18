@@ -67,7 +67,10 @@ export function AppSidebar() {
       <SidebarHeader className="p-4 border-b border-sidebar-border">
         <div className="flex items-center gap-2">
           <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-            <Building2 className="h-5 w-5 text-primary-foreground" aria-hidden="true" />
+            <Building2
+              className="h-5 w-5 text-primary-foreground"
+              aria-hidden="true"
+            />
           </div>
           <div>
             <p className="text-sm font-semibold">Audit Flow Pro</p>
@@ -85,7 +88,7 @@ export function AppSidebar() {
                   <SidebarMenuButton
                     asChild
                     isActive={location === item.url}
-                    data-testid={`sidebar-${item.title.toLowerCase().replace(/\s+/g, '-')}`}
+                    data-testid={`sidebar-${item.title.toLowerCase().replace(/\s+/g, "-")}`}
                   >
                     <Link
                       href={item.url}

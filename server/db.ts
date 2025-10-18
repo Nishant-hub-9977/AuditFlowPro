@@ -3,8 +3,8 @@ import * as schema from "../shared/schema";
 const url = process.env.DATABASE_URL!;
 if (!url) throw new Error("DATABASE_URL is required");
 
-type PgDrizzle = typeof import("drizzle-orm/node-postgres")["drizzle"];
-type NeonDrizzle = typeof import("drizzle-orm/neon-http")["drizzle"];
+type PgDrizzle = (typeof import("drizzle-orm/node-postgres"))["drizzle"];
+type NeonDrizzle = (typeof import("drizzle-orm/neon-http"))["drizzle"];
 type NodePgClient = import("drizzle-orm/node-postgres").NodePgClient;
 type DrizzleAny = ReturnType<PgDrizzle> | ReturnType<NeonDrizzle>;
 
@@ -18,7 +18,7 @@ async function init() {
     const { Pool } = await import("pg");
     const { drizzle } = await import("drizzle-orm/node-postgres");
     const pool = new Pool({ connectionString: url });
-  const instance = drizzle(pool as unknown as NodePgClient, commonConfig);
+    const instance = drizzle(pool as unknown as NodePgClient, commonConfig);
     dbInstance = instance;
     closeDb = async () => pool.end().catch(() => {});
     return instance;

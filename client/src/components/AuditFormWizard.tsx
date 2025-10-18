@@ -19,7 +19,7 @@ const steps = [
   "Checklist",
   "Observations",
   "Business Intel",
-  "Follow-up"
+  "Follow-up",
 ];
 
 export function AuditFormWizard() {
@@ -58,7 +58,7 @@ export function AuditFormWizard() {
           {steps.map((step, index) => {
             const isActive = index <= currentStep;
             const isCompleted = index < currentStep;
-            
+
             return (
               <div key={step} className="flex items-center">
                 <div className="flex flex-col items-center">
@@ -78,8 +78,12 @@ export function AuditFormWizard() {
                       <span className="text-sm font-medium">{index + 1}</span>
                     )}
                   </Button>
-                  <span className="mt-2 text-xs font-medium hidden sm:block">{step}</span>
-                  <span className="mt-2 text-xs font-medium sm:hidden">{step.split(' ')[0]}</span>
+                  <span className="mt-2 text-xs font-medium hidden sm:block">
+                    {step}
+                  </span>
+                  <span className="mt-2 text-xs font-medium sm:hidden">
+                    {step.split(" ")[0]}
+                  </span>
                 </div>
                 {index < steps.length - 1 && (
                   <div
@@ -108,7 +112,9 @@ export function AuditFormWizard() {
                   id="auditDate"
                   type="date"
                   value={formData.auditDate}
-                  onChange={(e) => setFormData({ ...formData, auditDate: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, auditDate: e.target.value })
+                  }
                   data-testid="input-audit-date"
                 />
               </div>
@@ -117,7 +123,9 @@ export function AuditFormWizard() {
                 <Input
                   id="auditorName"
                   value={formData.auditorName}
-                  onChange={(e) => setFormData({ ...formData, auditorName: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, auditorName: e.target.value })
+                  }
                   data-testid="input-auditor-name"
                   placeholder="Enter auditor name"
                 />
@@ -127,7 +135,9 @@ export function AuditFormWizard() {
                 <Input
                   id="customerName"
                   value={formData.customerName}
-                  onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, customerName: e.target.value })
+                  }
                   data-testid="input-customer-name"
                   placeholder="Enter customer name"
                 />
@@ -137,7 +147,9 @@ export function AuditFormWizard() {
                 <Input
                   id="siteLocation"
                   value={formData.siteLocation}
-                  onChange={(e) => setFormData({ ...formData, siteLocation: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, siteLocation: e.target.value })
+                  }
                   data-testid="input-site-location"
                   placeholder="Enter site location"
                 />
@@ -146,9 +158,14 @@ export function AuditFormWizard() {
                 <Label htmlFor="industryType">Industry Type</Label>
                 <Select
                   value={formData.industryType}
-                  onValueChange={(value) => setFormData({ ...formData, industryType: value })}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, industryType: value })
+                  }
                 >
-                  <SelectTrigger id="industryType" data-testid="select-industry-type">
+                  <SelectTrigger
+                    id="industryType"
+                    data-testid="select-industry-type"
+                  >
                     <SelectValue placeholder="Select industry" />
                   </SelectTrigger>
                   <SelectContent>
@@ -163,14 +180,18 @@ export function AuditFormWizard() {
                 <Label htmlFor="auditType">Audit Type</Label>
                 <Select
                   value={formData.auditType}
-                  onValueChange={(value) => setFormData({ ...formData, auditType: value })}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, auditType: value })
+                  }
                 >
                   <SelectTrigger id="auditType" data-testid="select-audit-type">
                     <SelectValue placeholder="Select audit type" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="fire">Fire Safety</SelectItem>
-                    <SelectItem value="electrical">Electrical Safety</SelectItem>
+                    <SelectItem value="electrical">
+                      Electrical Safety
+                    </SelectItem>
                     <SelectItem value="compliance">Compliance</SelectItem>
                     <SelectItem value="environmental">Environmental</SelectItem>
                   </SelectContent>
@@ -180,8 +201,12 @@ export function AuditFormWizard() {
                 <Label>Geo-Location</Label>
                 <div className="flex items-center gap-2 rounded-lg border border-input bg-muted p-3">
                   <MapPin className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm font-mono">{formData.geoLocation}</span>
-                  <Badge variant="secondary" className="ml-auto">Auto-detected</Badge>
+                  <span className="text-sm font-mono">
+                    {formData.geoLocation}
+                  </span>
+                  <Badge variant="secondary" className="ml-auto">
+                    Auto-detected
+                  </Badge>
                 </div>
               </div>
             </div>
@@ -195,12 +220,17 @@ export function AuditFormWizard() {
               <div className="space-y-3">
                 {[1, 2, 3].map((i) => (
                   <div key={i} className="rounded-lg border p-4 space-y-3">
-                    <p className="font-medium">Question {i}: Safety equipment inspection</p>
+                    <p className="font-medium">
+                      Question {i}: Safety equipment inspection
+                    </p>
                     <Textarea
                       placeholder="Enter observations and current status"
                       data-testid={`input-checklist-${i}`}
                     />
-                    <Input placeholder="Recommendations" data-testid={`input-recommendation-${i}`} />
+                    <Input
+                      placeholder="Recommendations"
+                      data-testid={`input-recommendation-${i}`}
+                    />
                   </div>
                 ))}
               </div>
@@ -287,7 +317,10 @@ export function AuditFormWizard() {
               </div>
               <div className="grid gap-2">
                 <Label>Contact Details</Label>
-                <Input placeholder="Email or phone" data-testid="input-contact-details" />
+                <Input
+                  placeholder="Email or phone"
+                  data-testid="input-contact-details"
+                />
               </div>
               <div className="grid gap-2">
                 <Label>Auditor Comments</Label>
@@ -298,8 +331,14 @@ export function AuditFormWizard() {
               </div>
               <div className="grid gap-2">
                 <Label>Upload Documents</Label>
-                <Input type="file" multiple data-testid="input-upload-documents" />
-                <p className="text-xs text-muted-foreground">Upload photos or documents (max 10 files)</p>
+                <Input
+                  type="file"
+                  multiple
+                  data-testid="input-upload-documents"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Upload photos or documents (max 10 files)
+                </p>
               </div>
             </div>
           )}

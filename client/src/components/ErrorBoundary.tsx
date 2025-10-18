@@ -15,8 +15,13 @@ interface ErrorBoundaryState {
 
 function sendErrorBeacon(payload: Record<string, unknown>) {
   try {
-    if (typeof navigator !== "undefined" && typeof navigator.sendBeacon === "function") {
-      const blob = new Blob([JSON.stringify(payload)], { type: "application/json" });
+    if (
+      typeof navigator !== "undefined" &&
+      typeof navigator.sendBeacon === "function"
+    ) {
+      const blob = new Blob([JSON.stringify(payload)], {
+        type: "application/json",
+      });
       navigator.sendBeacon("/api/logs/client-error", blob);
     }
   } catch (error) {
@@ -24,7 +29,13 @@ function sendErrorBeacon(payload: Record<string, unknown>) {
   }
 }
 
-const ErrorFallback = ({ error, onReset }: { error?: Error; onReset: () => void }) => {
+const ErrorFallback = ({
+  error,
+  onReset,
+}: {
+  error?: Error;
+  onReset: () => void;
+}) => {
   const [, navigate] = useLocation();
 
   return (
@@ -32,10 +43,14 @@ const ErrorFallback = ({ error, onReset }: { error?: Error; onReset: () => void 
       <Card className="w-full max-w-lg">
         <CardContent className="space-y-4 p-6 text-center">
           <div className="flex flex-col items-center gap-3">
-            <AlertTriangle className="h-8 w-8 text-destructive" aria-hidden="true" />
+            <AlertTriangle
+              className="h-8 w-8 text-destructive"
+              aria-hidden="true"
+            />
             <h2 className="text-xl font-semibold">Something went wrong</h2>
             <p className="text-sm text-muted-foreground">
-              An unexpected error occurred while rendering this section. You can retry or return to the dashboard.
+              An unexpected error occurred while rendering this section. You can
+              retry or return to the dashboard.
             </p>
             {error?.message && (
               <p className="text-xs text-muted-foreground" role="status">
@@ -61,7 +76,10 @@ const ErrorFallback = ({ error, onReset }: { error?: Error; onReset: () => void 
   );
 };
 
-export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+export class ErrorBoundary extends Component<
+  ErrorBoundaryProps,
+  ErrorBoundaryState
+> {
   state: ErrorBoundaryState = { hasError: false };
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {

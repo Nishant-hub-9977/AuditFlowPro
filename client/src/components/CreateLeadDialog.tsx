@@ -51,7 +51,10 @@ interface CreateLeadDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) {
+export function CreateLeadDialog({
+  open,
+  onOpenChange,
+}: CreateLeadDialogProps) {
   const { success: showSuccessToast, error: showErrorToast } = useToast();
 
   const { data: industries = [] } = useQuery<Industry[]>({
@@ -77,7 +80,9 @@ export function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) 
     mutationFn: (data: LeadFormData) => {
       const leadPayload = {
         ...data,
-        estimatedValue: data.estimatedValue ? parseInt(data.estimatedValue) : null,
+        estimatedValue: data.estimatedValue
+          ? parseInt(data.estimatedValue)
+          : null,
         industryId: data.industryId || null,
         auditId: null,
         assignedTo: null,
@@ -116,15 +121,19 @@ export function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" data-testid="dialog-create-lead">
+      <DialogContent
+        className="max-w-2xl max-h-[90vh] overflow-y-auto"
+        data-testid="dialog-create-lead"
+      >
         <DialogHeader>
           <DialogTitle>Create New Lead</DialogTitle>
-          <DialogDescription>
-            Enter the lead details below
-          </DialogDescription>
+          <DialogDescription>Enter the lead details below</DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+          <form
+            onSubmit={form.handleSubmit(handleSubmit)}
+            className="space-y-4"
+          >
             <FormField
               control={form.control}
               name="leadNumber"
@@ -146,7 +155,11 @@ export function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) 
                 <FormItem>
                   <FormLabel>Company Name</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="Enter company name" data-testid="input-company-name" />
+                    <Input
+                      {...field}
+                      placeholder="Enter company name"
+                      data-testid="input-company-name"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -160,7 +173,11 @@ export function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) 
                 <FormItem>
                   <FormLabel>Contact Person</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="Enter contact person name" data-testid="input-contact-person" />
+                    <Input
+                      {...field}
+                      placeholder="Enter contact person name"
+                      data-testid="input-contact-person"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -175,7 +192,12 @@ export function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) 
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input {...field} type="email" placeholder="email@example.com" data-testid="input-email" />
+                      <Input
+                        {...field}
+                        type="email"
+                        placeholder="email@example.com"
+                        data-testid="input-email"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -189,7 +211,11 @@ export function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) 
                   <FormItem>
                     <FormLabel>Phone</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="+1 234 567 8900" data-testid="input-phone" />
+                      <Input
+                        {...field}
+                        placeholder="+1 234 567 8900"
+                        data-testid="input-phone"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -255,10 +281,10 @@ export function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) 
                 <FormItem>
                   <FormLabel>Estimated Value (Optional)</FormLabel>
                   <FormControl>
-                    <Input 
-                      {...field} 
-                      type="number" 
-                      placeholder="Enter estimated value" 
+                    <Input
+                      {...field}
+                      type="number"
+                      placeholder="Enter estimated value"
                       data-testid="input-estimated-value"
                     />
                   </FormControl>
@@ -274,9 +300,9 @@ export function CreateLeadDialog({ open, onOpenChange }: CreateLeadDialogProps) 
                 <FormItem>
                   <FormLabel>Notes (Optional)</FormLabel>
                   <FormControl>
-                    <Textarea 
-                      {...field} 
-                      placeholder="Add any additional notes about this lead" 
+                    <Textarea
+                      {...field}
+                      placeholder="Add any additional notes about this lead"
                       data-testid="input-notes"
                       rows={3}
                     />

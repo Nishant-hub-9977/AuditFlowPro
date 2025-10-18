@@ -12,15 +12,24 @@ interface StatCardProps {
   description?: string;
 }
 
-export function StatCard({ title, value, icon: Icon, trend, description }: StatCardProps) {
+export function StatCard({
+  title,
+  value,
+  icon: Icon,
+  trend,
+  description,
+}: StatCardProps) {
   return (
-    <Card data-testid={`stat-card-${title.toLowerCase().replace(/\s+/g, '-')}`}>
+    <Card data-testid={`stat-card-${title.toLowerCase().replace(/\s+/g, "-")}`}>
       <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
         <CardTitle className="text-sm font-medium">{title}</CardTitle>
         <Icon className="h-4 w-4 text-muted-foreground" />
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold" data-testid={`stat-value-${title.toLowerCase().replace(/\s+/g, '-')}`}>
+        <div
+          className="text-2xl font-bold"
+          data-testid={`stat-value-${title.toLowerCase().replace(/\s+/g, "-")}`}
+        >
           {value}
         </div>
         {trend && (
@@ -30,10 +39,14 @@ export function StatCard({ title, value, icon: Icon, trend, description }: StatC
             ) : (
               <TrendingDown className="h-3 w-3 text-chart-5" />
             )}
-            <span className={`text-xs ${trend.isPositive ? 'text-chart-2' : 'text-chart-5'}`}>
+            <span
+              className={`text-xs ${trend.isPositive ? "text-chart-2" : "text-chart-5"}`}
+            >
               {trend.value}%
             </span>
-            <span className="text-xs text-muted-foreground">from last month</span>
+            <span className="text-xs text-muted-foreground">
+              from last month
+            </span>
           </div>
         )}
         {description && (
