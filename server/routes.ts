@@ -74,13 +74,26 @@ apiRouter.use(
       return next();
     }
 
-    return authenticateToken(req as AuthRequest, res, () => {
-      const authReq = req as AuthRequest;
-      res.locals.tenantId = authReq.user?.tenantId ?? DEFAULT_TENANT_ID;
-      res.locals.userRole = authReq.user?.role ?? "auditor";
-      res.locals.userId = authReq.user?.userId ?? null;
-      next();
-    });
+    // Try to authenticate if a token is present
+    const token = (req.headers.authorization?.split(" ")[1] || 
+                   req.cookies?.accessToken) as string | undefined;
+    
+    if (token) {
+      // Authenticate with token
+      return authenticateToken(req as AuthRequest, res, () => {
+        const authReq = req as AuthRequest;
+        res.locals.tenantId = authReq.user?.tenantId ?? DEFAULT_TENANT_ID;
+        res.locals.userRole = authReq.user?.role ?? "auditor";
+        res.locals.userId = authReq.user?.userId ?? null;
+        next();
+      });
+    }
+    
+    // No token present - use demo defaults
+    res.locals.tenantId = DEFAULT_TENANT_ID;
+    res.locals.userRole = "admin"; // Admin role for demo
+    res.locals.userId = null;
+    next();
   },
 );
 
@@ -94,6 +107,22 @@ apiRouter.get(
       res.json(stats);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch dashboard stats" });
+    }
+  },
+);
+
+apiRouter.get(
+  "/dashboard/activity",
+  async (req: ExpressRequest, res: ExpressResponse) => {
+    try {
+      const tenantId = getTenantFromLocals(res);
+      const limitParam = req.query.limit;
+      const limit =
+        typeof limitParam === "string" ? parseInt(limitParam, 10) : undefined;
+      const activity = await storage.getRecentActivity(tenantId, limit);
+      res.json(activity);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch recent activity" });
     }
   },
 );
@@ -1119,7 +1148,7 @@ apiRouter.get(
 
 apiRouter.post(
   "/leads",
-  authorizeRoles("master_admin", "admin", "sales_rep"),
+  authorizeRoles("master_admin", "admin", "sales_rep", "auditor"),
   async (req: ExpressRequest, res: ExpressResponse) => {
     try {
       const tenantId = getTenantFromLocals(res);
@@ -1138,7 +1167,7 @@ apiRouter.post(
 
 apiRouter.put(
   "/leads/:id",
-  authorizeRoles("master_admin", "admin", "sales_rep"),
+  authorizeRoles("master_admin", "admin", "sales_rep", "auditor"),
   async (req: ExpressRequest, res: ExpressResponse) => {
     try {
       const tenantId = getTenantFromLocals(res);
@@ -1174,7 +1203,7 @@ apiRouter.delete(
 // Lead Workflow Transitions
 apiRouter.post(
   "/leads/:id/qualify",
-  authorizeRoles("master_admin", "admin", "sales_rep"),
+  authorizeRoles("master_admin", "admin", "sales_rep", "auditor"),
   async (req: ExpressRequest, res: ExpressResponse) => {
     try {
       const tenantId = getTenantFromLocals(res);
@@ -1193,7 +1222,7 @@ apiRouter.post(
 
 apiRouter.post(
   "/leads/:id/start-progress",
-  authorizeRoles("master_admin", "admin", "sales_rep"),
+  authorizeRoles("master_admin", "admin", "sales_rep", "auditor"),
   async (req: ExpressRequest, res: ExpressResponse) => {
     try {
       const tenantId = getTenantFromLocals(res);
@@ -1212,7 +1241,7 @@ apiRouter.post(
 
 apiRouter.post(
   "/leads/:id/convert",
-  authorizeRoles("master_admin", "admin", "sales_rep"),
+  authorizeRoles("master_admin", "admin", "sales_rep", "auditor"),
   async (req: ExpressRequest, res: ExpressResponse) => {
     try {
       const tenantId = getTenantFromLocals(res);
@@ -1231,7 +1260,7 @@ apiRouter.post(
 
 apiRouter.post(
   "/leads/:id/close",
-  authorizeRoles("master_admin", "admin"),
+  authorizeRoles("master_admin", "admin", "sales_rep", "auditor"),
   async (req: ExpressRequest, res: ExpressResponse) => {
     try {
       const tenantId = getTenantFromLocals(res);

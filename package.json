@@ -15,7 +15,7 @@
     "migrate": "drizzle-kit push",
     "seed": "tsx scripts/seed-demo.ts",
     "demo:api": "cross-env PORT=3000 tsx server/index.ts",
-    "demo:web": "cross-env VITE_API_BASE_URL=http://0.0.0.0:3000/api pnpm run preview -- --host 0.0.0.0 --port 4173",
+  "demo:web": "cross-env VITE_API_BASE_URL=http://0.0.0.0:3000 pnpm run preview -- --host 0.0.0.0 --port 4173",
     "demo": "concurrently -k -n API,WEB -c auto \"pnpm demo:api\" \"pnpm demo:web\"",
     "login:demo": "node -e \"console.log('Use demo@auditflow.pro / demo1234')\""
   },
@@ -55,6 +55,7 @@
     "@types/express": "4.17.21",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/memoizee": "^0.4.12",
+    "animejs": "^4.2.2",
     "bcrypt": "^6.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

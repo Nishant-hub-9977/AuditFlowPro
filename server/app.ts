@@ -25,4 +25,20 @@ if (process.env.NODE_ENV === "development") {
   // Development-specific setup
 }
 
+// Global error handler
+app.use(
+  (
+    err: any,
+    _req: express.Request,
+    res: express.Response,
+    _next: express.NextFunction,
+  ) => {
+    console.error("Global error handler:", err);
+    res.status(500).json({
+      error: "Internal server error",
+      message: process.env.NODE_ENV === "development" ? err.message : undefined,
+    });
+  },
+);
+
 export default app;

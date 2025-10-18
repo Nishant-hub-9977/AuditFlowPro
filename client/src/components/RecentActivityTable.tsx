@@ -1,3 +1,5 @@
+import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   Table,
   TableBody,
@@ -9,51 +11,68 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Eye, Edit } from "lucide-react";
 
-//todo: remove mock functionality
-const mockActivities = [
-  {
-    id: "AUD-2024-001",
-    type: "Audit",
-    customer: "PharmaCorp Ltd",
-    industry: "Pharma",
-    status: "Completed",
-    date: "2024-01-08",
-    auditor: "John Smith",
-  },
-  {
-    id: "LEAD-2024-045",
-    type: "Lead",
-    customer: "ChemTech Industries",
-    industry: "Chemical",
-    status: "Open",
-    date: "2024-01-07",
-    auditor: "Sarah Johnson",
-  },
-  {
-    id: "AUD-2024-002",
-    type: "Audit",
-    customer: "BioMed Systems",
-    industry: "Pharma",
-    status: "In Progress",
-    date: "2024-01-06",
-    auditor: "Mike Davis",
-  },
-];
+type ActivityType = "Audit" | "Lead";
+
+type ActivityItem = {
+  id: string;
+  reference: string;
+  type: ActivityType;
+  customer: string;
+  industry: string | null;
+  status: string;
+  date: string;
+  owner: string | null;
+};
 
 const statusColors: Record<
   string,
   "default" | "secondary" | "destructive" | "outline"
 > = {
-  Completed: "default",
-  "In Progress": "secondary",
-  Open: "outline",
-  Rejected: "destructive",
+  draft: "outline",
+  review: "secondary",
+  approved: "default",
+  closed: "default",
+  closing: "default",
+  closed_audit: "default",
+  completed: "default",
+  pending: "outline",
+  open: "outline",
+  new: "outline",
+  qualified: "secondary",
+  in_progress: "secondary",
+  converted: "default",
+  closed_lead: "destructive",
+  rejected: "destructive",
 };
 
+function formatStatus(status: string): string {
+  return status
+    .replace(/[_-]/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function formatDate(isoDate: string): string {
+  const date = new Date(isoDate);
+  if (Number.isNaN(date.getTime())) {
+    return "-";
+  }
+  return new Intl.DateTimeFormat("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+  }).format(date);
+}
+
 export function RecentActivityTable() {
-  const hasActivity = mockActivities.length > 0;
+  const { data, isLoading, isError } = useQuery<ActivityItem[]>({
+    queryKey: ["/api/dashboard/activity"],
+  });
+
+  const activity = useMemo(() => data ?? [], [data]);
+  const hasActivity = activity.length > 0;
 
   return (
     <Card data-testid="table-recent-activity">
@@ -91,44 +110,70 @@ export function RecentActivityTable() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {hasActivity ? (
-                  mockActivities.map((activity) => (
+                {isLoading ? (
+                  Array.from({ length: 3 }).map((_, index) => (
+                    <TableRow key={`activity-skeleton-${index}`}>
+                      <TableCell colSpan={8} className="py-6">
+                        <Skeleton className="h-6 w-full" />
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : isError ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="py-10 text-center">
+                      <div className="space-y-2">
+                        <p className="font-medium text-destructive">
+                          Unable to load activity right now
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Please refresh the page or try again later.
+                        </p>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : hasActivity ? (
+                  activity.map((item) => (
                     <TableRow
-                      key={activity.id}
-                      data-testid={`row-activity-${activity.id}`}
+                      key={`${item.type}-${item.id}`}
+                      data-testid={`row-activity-${item.reference}`}
                     >
                       <TableCell className="font-mono text-sm">
-                        {activity.id}
+                        {item.reference}
                       </TableCell>
-                      <TableCell>{activity.type}</TableCell>
-                      <TableCell>{activity.customer}</TableCell>
-                      <TableCell>{activity.industry}</TableCell>
+                      <TableCell>{item.type}</TableCell>
+                      <TableCell>{item.customer}</TableCell>
+                      <TableCell>{item.industry ?? "-"}</TableCell>
                       <TableCell>
                         <Badge
-                          variant={statusColors[activity.status] || "outline"}
+                          variant={
+                            statusColors[item.status.toLowerCase()] ||
+                            (item.status.toLowerCase().includes("close")
+                              ? "default"
+                              : "outline")
+                          }
                         >
-                          {activity.status}
+                          {formatStatus(item.status)}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {activity.date}
+                        {formatDate(item.date)}
                       </TableCell>
-                      <TableCell>{activity.auditor}</TableCell>
+                      <TableCell>{item.owner ?? "-"}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
                           <Button
                             variant="ghost"
                             size="icon"
-                            data-testid={`button-view-${activity.id}`}
-                            aria-label={`View ${activity.id}`}
+                            data-testid={`button-view-${item.reference}`}
+                            aria-label={`View ${item.reference}`}
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="icon"
-                            data-testid={`button-edit-${activity.id}`}
-                            aria-label={`Edit ${activity.id}`}
+                            data-testid={`button-edit-${item.reference}`}
+                            aria-label={`Edit ${item.reference}`}
                           >
                             <Edit className="h-4 w-4" />
                           </Button>

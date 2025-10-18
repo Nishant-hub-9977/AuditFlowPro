@@ -29,14 +29,20 @@ export function LeadDetailDialog({
   const { toast } = useToast();
 
   const qualifyMutation = useMutation({
-    mutationFn: (leadId: string) =>
-      apiRequest("POST", `/api/leads/${leadId}/qualify`),
+    mutationFn: async (leadId: string) => {
+      const res = await apiRequest("POST", `/api/leads/${leadId}/qualify`);
+      return res.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/activity"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/reports/leads"] });
       toast({ title: "Success", description: "Lead qualified" });
       onOpenChange(false);
     },
     onError: (error: any) => {
+      console.error("Qualify error:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to qualify lead",
@@ -46,14 +52,20 @@ export function LeadDetailDialog({
   });
 
   const startProgressMutation = useMutation({
-    mutationFn: (leadId: string) =>
-      apiRequest("POST", `/api/leads/${leadId}/start-progress`),
+    mutationFn: async (leadId: string) => {
+      const res = await apiRequest("POST", `/api/leads/${leadId}/start-progress`);
+      return res.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/activity"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/reports/leads"] });
       toast({ title: "Success", description: "Lead moved to in progress" });
       onOpenChange(false);
     },
     onError: (error: any) => {
+      console.error("Start progress error:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to start progress",
@@ -63,14 +75,20 @@ export function LeadDetailDialog({
   });
 
   const convertMutation = useMutation({
-    mutationFn: (leadId: string) =>
-      apiRequest("POST", `/api/leads/${leadId}/convert`),
+    mutationFn: async (leadId: string) => {
+      const res = await apiRequest("POST", `/api/leads/${leadId}/convert`);
+      return res.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/activity"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/reports/leads"] });
       toast({ title: "Success", description: "Lead converted successfully" });
       onOpenChange(false);
     },
     onError: (error: any) => {
+      console.error("Convert error:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to convert lead",
@@ -80,14 +98,20 @@ export function LeadDetailDialog({
   });
 
   const closeMutation = useMutation({
-    mutationFn: (leadId: string) =>
-      apiRequest("POST", `/api/leads/${leadId}/close`),
+    mutationFn: async (leadId: string) => {
+      const res = await apiRequest("POST", `/api/leads/${leadId}/close`);
+      return res.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/activity"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/reports/leads"] });
       toast({ title: "Success", description: "Lead closed" });
       onOpenChange(false);
     },
     onError: (error: any) => {
+      console.error("Close error:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to close lead",

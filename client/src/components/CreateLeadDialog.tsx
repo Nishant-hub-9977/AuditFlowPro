@@ -77,7 +77,7 @@ export function CreateLeadDialog({
   });
 
   const createLeadMutation = useMutation({
-    mutationFn: (data: LeadFormData) => {
+    mutationFn: async (data: LeadFormData) => {
       const leadPayload = {
         ...data,
         estimatedValue: data.estimatedValue
@@ -87,10 +87,14 @@ export function CreateLeadDialog({
         auditId: null,
         assignedTo: null,
       };
-      return apiRequest("POST", "/api/leads", leadPayload);
+      const res = await apiRequest("POST", "/api/leads", leadPayload);
+      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/activity"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/reports/leads"] });
       showSuccessToast({
         title: "Lead created",
         description: "The lead is now ready for assignment.",
@@ -99,6 +103,7 @@ export function CreateLeadDialog({
       onOpenChange(false);
     },
     onError: (error: any) => {
+      console.error("Lead creation error:", error);
       showErrorToast({
         title: "Error",
         description: error.message || "Failed to create lead",

@@ -29,14 +29,20 @@ export function AuditDetailDialog({
   const { toast } = useToast();
 
   const submitForReviewMutation = useMutation({
-    mutationFn: (auditId: string) =>
-      apiRequest("POST", `/api/audits/${auditId}/submit-for-review`),
+    mutationFn: async (auditId: string) => {
+      const res = await apiRequest("POST", `/api/audits/${auditId}/submit-for-review`);
+      return res.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/audits"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/activity"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/reports/audits"] });
       toast({ title: "Success", description: "Audit submitted for review" });
       onOpenChange(false);
     },
     onError: (error: any) => {
+      console.error("Submit for review error:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to submit audit",
@@ -46,14 +52,20 @@ export function AuditDetailDialog({
   });
 
   const approveMutation = useMutation({
-    mutationFn: (auditId: string) =>
-      apiRequest("POST", `/api/audits/${auditId}/approve`),
+    mutationFn: async (auditId: string) => {
+      const res = await apiRequest("POST", `/api/audits/${auditId}/approve`);
+      return res.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/audits"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/activity"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/reports/audits"] });
       toast({ title: "Success", description: "Audit approved" });
       onOpenChange(false);
     },
     onError: (error: any) => {
+      console.error("Approve error:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to approve audit",
@@ -63,10 +75,15 @@ export function AuditDetailDialog({
   });
 
   const rejectMutation = useMutation({
-    mutationFn: (auditId: string) =>
-      apiRequest("POST", `/api/audits/${auditId}/reject`),
+    mutationFn: async (auditId: string) => {
+      const res = await apiRequest("POST", `/api/audits/${auditId}/reject`);
+      return res.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/audits"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/activity"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/reports/audits"] });
       toast({
         title: "Success",
         description: "Audit rejected and returned to draft",
@@ -74,6 +91,7 @@ export function AuditDetailDialog({
       onOpenChange(false);
     },
     onError: (error: any) => {
+      console.error("Reject error:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to reject audit",
@@ -83,10 +101,15 @@ export function AuditDetailDialog({
   });
 
   const closeMutation = useMutation({
-    mutationFn: (auditId: string) =>
-      apiRequest("POST", `/api/audits/${auditId}/close`),
+    mutationFn: async (auditId: string) => {
+      const res = await apiRequest("POST", `/api/audits/${auditId}/close`);
+      return res.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/audits"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/activity"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/reports/audits"] });
       toast({ title: "Success", description: "Audit closed" });
       onOpenChange(false);
     },

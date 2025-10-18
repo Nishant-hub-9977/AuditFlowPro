@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { eq, desc, and, like, sql } from "drizzle-orm";
+import { eq, desc, and, like, sql, inArray } from "drizzle-orm";
 import * as schema from "../shared/schema";
 import type {
   User,
@@ -206,6 +206,22 @@ export interface IStorage {
     totalEstimatedValue: number;
     totalLeads: number;
   }>;
+
+  getRecentActivity(
+    tenantId: string,
+    limit?: number,
+  ): Promise<
+    Array<{
+      id: string;
+      reference: string;
+      type: "Audit" | "Lead";
+      customer: string;
+      industry: string | null;
+      status: string;
+      date: string;
+      owner: string | null;
+    }>
+  >;
 }
 
 export class DbStorage implements IStorage {
@@ -1027,6 +1043,9 @@ export class DbStorage implements IStorage {
     completedAudits: number;
     totalLeads: number;
   }> {
+    const pendingAuditStatuses = ["draft", "review"] as const;
+    const completedAuditStatuses = ["approved", "closed"] as const;
+
     const [totalAuditsResult] = await db
       .select({ count: sql<number>`count(*)` })
       .from(schema.audits)
@@ -1038,7 +1057,7 @@ export class DbStorage implements IStorage {
       .where(
         and(
           eq(schema.audits.tenantId, tenantId),
-          eq(schema.audits.status, "planning"),
+          inArray(schema.audits.status, pendingAuditStatuses),
         ),
       );
 
@@ -1048,7 +1067,7 @@ export class DbStorage implements IStorage {
       .where(
         and(
           eq(schema.audits.tenantId, tenantId),
-          eq(schema.audits.status, "completed"),
+          inArray(schema.audits.status, completedAuditStatuses),
         ),
       );
 
@@ -1250,6 +1269,77 @@ export class DbStorage implements IStorage {
       totalEstimatedValue: Number(valueResult.total) || 0,
       totalLeads,
     };
+  }
+
+  async getRecentActivity(
+    tenantId: string,
+    limit = 10,
+  ): Promise<
+    Array<{
+      id: string;
+      reference: string;
+      type: "Audit" | "Lead";
+      customer: string;
+      industry: string | null;
+      status: string;
+      date: string;
+      owner: string | null;
+    }>
+  > {
+    const safeLimit = Number.isFinite(limit) && limit > 0 ? limit : 10;
+
+    const auditsActivity = await db
+      .select({
+        id: schema.audits.id,
+        reference: schema.audits.auditNumber,
+        type: sql<"Audit">`'Audit'`,
+        customer: schema.audits.customerName,
+        industry: schema.industries.name,
+        status: schema.audits.status,
+        date: schema.audits.updatedAt,
+        owner: schema.audits.auditorName,
+      })
+      .from(schema.audits)
+      .leftJoin(
+        schema.industries,
+        eq(schema.audits.industryId, schema.industries.id),
+      )
+      .where(eq(schema.audits.tenantId, tenantId))
+      .orderBy(desc(schema.audits.updatedAt))
+      .limit(safeLimit);
+
+    const leadsActivity = await db
+      .select({
+        id: schema.leads.id,
+        reference: schema.leads.leadNumber,
+        type: sql<"Lead">`'Lead'`,
+        customer: schema.leads.companyName,
+        industry: schema.industries.name,
+        status: schema.leads.status,
+        date: schema.leads.updatedAt,
+        owner: schema.leads.contactPerson,
+      })
+      .from(schema.leads)
+      .leftJoin(
+        schema.industries,
+        eq(schema.leads.industryId, schema.industries.id),
+      )
+      .where(eq(schema.leads.tenantId, tenantId))
+      .orderBy(desc(schema.leads.updatedAt))
+      .limit(safeLimit);
+
+    return [...auditsActivity, ...leadsActivity]
+      .map((item) => ({
+        ...item,
+        date:
+          item.date instanceof Date
+            ? item.date.toISOString()
+            : new Date(item.date).toISOString(),
+      }))
+      .sort(
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+      )
+      .slice(0, safeLimit);
   }
 }
 
