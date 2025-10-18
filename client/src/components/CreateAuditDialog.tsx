@@ -81,16 +81,21 @@ export function CreateAuditDialog({
 
   const createAuditMutation = useMutation({
     mutationFn: async (data: AuditFormData) => {
-      // Convert auditDate string to ISO timestamp
-      const auditPayload = {
-        ...data,
-        auditDate: new Date(data.auditDate).toISOString(),
-        auditorId: null,
-        industryId: data.industryId || null,
-        auditTypeId: data.auditTypeId || null,
-      };
-      const res = await apiRequest("POST", "/api/audits", auditPayload);
-      return res.json();
+      try {
+        const auditPayload = {
+          ...data,
+          auditDate: new Date(data.auditDate).toISOString(),
+          auditorId: null,
+          industryId: data.industryId || null,
+          auditTypeId: data.auditTypeId || null,
+        };
+        const res = await apiRequest("POST", "/api/audits", auditPayload);
+        const json = await res.json();
+        return json;
+      } catch (err) {
+        console.error("Audit mutation error:", err);
+        throw err;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/audits"] });
@@ -108,7 +113,7 @@ export function CreateAuditDialog({
       console.error("Audit creation error:", error);
       toast({
         title: "Error",
-        description: error.message || "Failed to create audit",
+        description: error?.message || "Failed to create audit",
         variant: "destructive",
       });
     },

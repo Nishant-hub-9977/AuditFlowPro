@@ -78,17 +78,23 @@ export function CreateLeadDialog({
 
   const createLeadMutation = useMutation({
     mutationFn: async (data: LeadFormData) => {
-      const leadPayload = {
-        ...data,
-        estimatedValue: data.estimatedValue
-          ? parseInt(data.estimatedValue)
-          : null,
-        industryId: data.industryId || null,
-        auditId: null,
-        assignedTo: null,
-      };
-      const res = await apiRequest("POST", "/api/leads", leadPayload);
-      return res.json();
+      try {
+        const leadPayload = {
+          ...data,
+          estimatedValue: data.estimatedValue
+            ? parseInt(data.estimatedValue)
+            : null,
+          industryId: data.industryId || null,
+          auditId: null,
+          assignedTo: null,
+        };
+        const res = await apiRequest("POST", "/api/leads", leadPayload);
+        const json = await res.json();
+        return json;
+      } catch (err) {
+        console.error("Lead mutation error:", err);
+        throw err;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
@@ -106,7 +112,7 @@ export function CreateLeadDialog({
       console.error("Lead creation error:", error);
       showErrorToast({
         title: "Error",
-        description: error.message || "Failed to create lead",
+        description: error?.message || "Failed to create lead",
       });
     },
   });
