@@ -4,6 +4,8 @@ import { eq } from "drizzle-orm";
 import { db } from "../server/db";
 import { tenants, users } from "../shared/schema";
 
+type InsertUser = typeof users.$inferInsert;
+
 async function ensureTenant(): Promise<string> {
   const [tenant] = await db.select().from(tenants).limit(1);
   if (tenant) {
@@ -22,31 +24,38 @@ async function ensureTenant(): Promise<string> {
   return created.id;
 }
 
-async function seedDemoUser(): Promise<void> {
-  const email = "demo@auditflow.pro";
+async function createOrUpdateDemoUser(email: string, password: string, overrides: Partial<InsertUser> = {}) {
   const [existing] = await db
     .select()
     .from(users)
     .where(eq(users.email, email))
     .limit(1);
 
+  const tenantId = await ensureTenant();
+  const passwordHash = await bcrypt.hash(password, 10);
+
   if (existing) {
-    console.log("Demo user already present", email);
+    await db
+      .update(users)
+      .set({
+        password: passwordHash,
+        isActive: true,
+        ...overrides,
+      })
+      .where(eq(users.id, existing.id));
+    console.log("Demo user refreshed", email);
     return;
   }
-
-  const tenantId = await ensureTenant();
-  const passwordHash = await bcrypt.hash("demo1234", 10);
 
   await db
     .insert(users)
     .values({
       tenantId,
-      username: "demo_admin",
+      username: overrides.username ?? email.split("@")[0],
       password: passwordHash,
-      fullName: "Demo Administrator",
+      fullName: overrides.fullName ?? "Demo User",
       email,
-      role: "admin",
+      role: overrides.role ?? "admin",
       isActive: true,
     })
     .onConflictDoNothing();
@@ -54,9 +63,24 @@ async function seedDemoUser(): Promise<void> {
   console.log("Demo user created", email);
 }
 
-seedDemoUser()
+async function runSeed(): Promise<void> {
+  await createOrUpdateDemoUser("demo@auditflow.pro", "demo1234", {
+    username: "demo_admin",
+    fullName: "Demo Administrator",
+    role: "admin",
+  });
+
+  await createOrUpdateDemoUser("guest@auditflow.pro", "guest1234", {
+    username: "demo_guest",
+    fullName: "Guest Viewer",
+    role: "client",
+  });
+
+  console.log("Seed complete");
+}
+
+runSeed()
   .then(() => {
-    console.log("Seed complete");
     process.exit(0);
   })
   .catch((error) => {

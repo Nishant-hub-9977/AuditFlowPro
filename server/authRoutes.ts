@@ -165,7 +165,7 @@ router.post("/guest-login", async (req: ExpressRequest, res: ExpressResponse) =>
     // Find guest user
     const [guestUser] = await db.select().from(schema.users)
       .where(and(
-        eq(schema.users.email, "guest@demo.com"),
+        eq(schema.users.email, "guest@auditflow.pro"),
         eq(schema.users.isActive, true)
       ))
       .limit(1);

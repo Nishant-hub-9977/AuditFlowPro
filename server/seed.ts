@@ -94,13 +94,13 @@ async function seed() {
 
   // Create guest user for demo mode
   console.log("Creating guest user for demo mode...");
-  const hashedGuestPassword = await bcrypt.hash("guest123", 10);
+  const hashedGuestPassword = await bcrypt.hash("guest1234", 10);
   await db.insert(schema.users).values({
     tenantId,
     username: "guest",
     password: hashedGuestPassword,
     fullName: "Guest User",
-    email: "guest@demo.com",
+    email: "guest@auditflow.pro",
     role: "admin", // Give full access for demo
     isActive: true,
   }).onConflictDoNothing();
@@ -219,7 +219,7 @@ async function seed() {
   console.log("   Admin: admin_user@example.com / demo123");
   console.log("   Client: client_user@example.com / demo123");
   console.log("   Auditor: auditor_user@example.com / demo123");
-  console.log("   Guest: Use 'Try Demo' button on login page");
+  console.log("   Guest: guest@auditflow.pro / guest1234");
 }
 
 seed().catch((error) => {
