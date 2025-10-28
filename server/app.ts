@@ -9,7 +9,17 @@ import apiRouter from "./routes";
 const app = express();
 
 app.use(helmet());
-app.use(cors({ origin: true, credentials: true }));
+app.use(
+  cors({
+    origin: [
+      "http://localhost:4173",
+      "http://localhost:3000",
+      "http://0.0.0.0:4173",
+      "http://127.0.0.1:4173",
+    ],
+    credentials: true,
+  })
+);
 app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
 
