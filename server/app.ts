@@ -5,20 +5,16 @@ import helmet from "helmet";
 import "dotenv/config";
 import authRouter from "./authRoutes";
 import apiRouter from "./routes";
+import type { AuthRequest } from "./auth";
 
 const app = express();
 
 app.use(helmet());
 app.use(
   cors({
-    origin: [
-      "http://localhost:4173",
-      "http://localhost:3000",
-      "http://0.0.0.0:4173",
-      "http://127.0.0.1:4173",
-    ],
+    origin: true,
     credentials: true,
-  })
+  }),
 );
 app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
@@ -30,6 +26,8 @@ app.use("/api/auth", authRouter);
 app.use("/api", apiRouter);
 
 app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
+
+app.get("/api/whoami", (req, res) => res.json({ demo: process.env.DEMO_MODE, user: (req as AuthRequest).user ?? null }));
 
 if (process.env.NODE_ENV === "development") {
   // Development-specific setup

@@ -1,17 +1,12 @@
-import type { Config } from "drizzle-kit";
+import "dotenv/config";
+import { defineConfig } from "drizzle-kit";
 
-const connectionString = process.env.DATABASE_URL;
-if (!connectionString) {
-  throw new Error("DATABASE_URL, ensure the database is provisioned");
-}
-
-export default {
+export default defineConfig({
+  dialect: "postgresql",
   schema: "./shared/schema.ts",
   out: "./drizzle",
-  dialect: "postgresql",
   dbCredentials: {
-    url: connectionString,
+    url: process.env.DATABASE_URL!,
   },
-  verbose: true,
-  strict: true,
-} satisfies Config;
+});
+

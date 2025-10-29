@@ -1,11 +1,17 @@
 import "dotenv/config";
 import app from "./app";
+import type { Request, Response } from "express";
 
-const port = Number(process.env.PORT ?? 3000);
-const host = "0.0.0.0";
+app.get("/", (_req: Request, res: Response) => res.send("AuditFlowPro API is running. Try /api/health"));
 
-app.listen(port, host, () => {
-  console.log(`✓ API listening on :${port}`);
+const PORT = process.env.PORT || 3000;
+
+const server = app.listen(PORT, () => {
+  console.log(`✓ API listening on :${PORT}`);
+});
+
+server.on("error", (err) => {
+    console.error("Server startup error:", err);
 });
 
 

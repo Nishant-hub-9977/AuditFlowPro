@@ -12,6 +12,10 @@ const isProduction = process.env.NODE_ENV === "production";
 
 function requireSecret(name: "JWT_SECRET" | "REFRESH_SECRET"): string {
   const value = process.env[name];
+  // In demo mode, we can use dummy secrets since we don't verify tokens
+  if (process.env.DEMO_MODE === "true") {
+    return value || `demo-${name}-dummy-value`;
+  }
   if (!value) {
     throw new Error(`${name} environment variable is required`);
   }
@@ -127,6 +131,14 @@ export function authenticateToken(
   res: Response,
   next: NextFunction,
 ): void {
+  if (process.env.DEMO_MODE === 'true') {
+    req.user = {
+      userId: process.env.DEMO_USER_ID ?? "00000000-0000-0000-0000-000000000000",
+      role: 'admin',
+      tenantId: process.env.DEFAULT_TENANT_ID ?? "00000000-0000-0000-0000-000000000001",
+    };
+    return next();
+  }
   const token = resolveAuthToken(req);
 
   if (!token) {
@@ -145,6 +157,11 @@ export function authenticateToken(
 
 export function authorizeRoles(...roles: string[]) {
   return (req: AuthRequest, res: Response, next: NextFunction): void => {
+    // DEMO: skip auth check entirely in demo mode
+    if (process.env.DEMO_MODE === "true") {
+      return next();
+    }
+
     if (!req.user) {
       res.status(401).json({ error: "Authentication required" });
       return;

@@ -59,28 +59,28 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="Total Audits"
-          value={isLoading ? "..." : stats?.totalAudits.toString() || "0"}
+          value={isLoading ? "..." : String(stats?.totalAudits ?? 0)}
           icon={ClipboardCheck}
           trend={{ value: 12, isPositive: true }}
           description="Active audits this month"
         />
         <StatCard
           title="Pending Audits"
-          value={isLoading ? "..." : stats?.pendingAudits.toString() || "0"}
+          value={isLoading ? "..." : String(stats?.pendingAudits ?? 0)}
           icon={TrendingUp}
           trend={{ value: 5, isPositive: false }}
           description="Awaiting execution"
         />
         <StatCard
           title="Completed Audits"
-          value={isLoading ? "..." : stats?.completedAudits.toString() || "0"}
+          value={isLoading ? "..." : String(stats?.completedAudits ?? 0)}
           icon={CheckCircle2}
           trend={{ value: 8, isPositive: true }}
           description="This quarter"
         />
         <StatCard
           title="Leads Generated"
-          value={isLoading ? "..." : stats?.totalLeads.toString() || "0"}
+          value={isLoading ? "..." : String(stats?.totalLeads ?? 0)}
           icon={Users}
           trend={{ value: 15, isPositive: true }}
           description="From audits"

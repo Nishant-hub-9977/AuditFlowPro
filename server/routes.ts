@@ -6,6 +6,7 @@ import type {
 } from "express";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
+import crypto from "crypto";
 import {
   insertUserSchema,
   insertAuditSchema,
@@ -28,6 +29,8 @@ import {
   hashPassword,
 } from "./auth";
 import { storage } from "./storage";
+import { sql } from "drizzle-orm";
+import { audits, leads } from "../shared/schema";
 
 const apiRouter = express.Router();
 
@@ -90,9 +93,14 @@ apiRouter.use(
     }
     
     // No token present - use demo defaults
+    (req as AuthRequest).user = {
+      userId: "00000000-0000-0000-0000-000000000000", // A default user ID for demo
+      role: "admin",
+      tenantId: DEFAULT_TENANT_ID,
+    };
     res.locals.tenantId = DEFAULT_TENANT_ID;
     res.locals.userRole = "admin"; // Admin role for demo
-    res.locals.userId = null;
+    res.locals.userId = (req as AuthRequest).user?.userId ?? null;
     next();
   },
 );
@@ -100,12 +108,41 @@ apiRouter.use(
 // Dashboard Stats
 apiRouter.get(
   "/dashboard/stats",
-  async (req: ExpressRequest, res: ExpressResponse) => {
+  async (req: AuthRequest, res: ExpressResponse) => {
     try {
+      // DEMO: return mock data without hitting the database
+      if (process.env.DEMO_MODE === "true") {
+        return res.json({
+          totalAudits: 12,
+          pendingAudits: 3,
+          completedAudits: 9,
+          totalLeads: 45,
+          leadsGenerated: 45,
+        });
+      }
+
       const tenantId = getTenantFromLocals(res);
-      const stats = await storage.getDashboardStats(tenantId);
+      
+      const toNum = (x: unknown) => Number(x ?? 0);
+      
+      const stats = await db.transaction(async (tx) => {
+        const totalAuditsResult = await tx.select({ count: sql<number>`cast(count(*) as integer)` }).from(audits).where(eq(audits.tenantId, tenantId));
+        const pendingAuditsResult = await tx.select({ count: sql<number>`cast(count(*) as integer)` }).from(audits).where(sql`${audits.tenantId} = ${tenantId} AND ${audits.status} = 'pending'`);
+        const completedAuditsResult = await tx.select({ count: sql<number>`cast(count(*) as integer)` }).from(audits).where(sql`${audits.tenantId} = ${tenantId} AND ${audits.status} = 'completed'`);
+        const leadsGeneratedResult = await tx.select({ count: sql<number>`cast(count(*) as integer)` }).from(leads).where(eq(leads.tenantId, tenantId));
+
+        return {
+          totalAudits: toNum(totalAuditsResult?.[0]?.count),
+          pendingAudits: toNum(pendingAuditsResult?.[0]?.count),
+          completedAudits: toNum(completedAuditsResult?.[0]?.count),
+          totalLeads: toNum(leadsGeneratedResult?.[0]?.count),
+          leadsGenerated: toNum(leadsGeneratedResult?.[0]?.count),
+        };
+      });
+
       res.json(stats);
     } catch (error) {
+      console.error("Failed to fetch dashboard stats:", error);
       res.status(500).json({ message: "Failed to fetch dashboard stats" });
     }
   },
@@ -1153,6 +1190,20 @@ apiRouter.post(
     try {
       const tenantId = getTenantFromLocals(res);
       const validated = insertLeadSchema.parse(req.body);
+      
+      // DEMO: return mock lead without saving to database
+      if (process.env.DEMO_MODE === "true") {
+        const mockLead = {
+          id: crypto.randomUUID(),
+          ...validated,
+          tenantId,
+          status: "new",
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+        return res.status(201).json(mockLead);
+      }
+      
       const lead = await storage.createLead({
         ...validated,
         tenantId,

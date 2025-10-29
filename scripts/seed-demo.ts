@@ -76,6 +76,12 @@ async function seedDemo(): Promise<void> {
       role: "admin",
     });
 
+    const auditor = await createOrUpdateDemoUser("auditor@auditflow.pro", "auditor1234", {
+      username: "demo_auditor",
+      fullName: "Demo Auditor",
+      role: "auditor",
+    });
+
     await createOrUpdateDemoUser("guest@auditflow.pro", "guest1234", {
       username: "demo_guest",
       fullName: "Guest Viewer",
@@ -252,7 +258,16 @@ async function seedDemo(): Promise<void> {
           estimatedValue: l.estimatedValue ?? null,
           assignedTo: admin.id,
         })
-        .onConflictDoNothing();
+        .onConflictDoUpdate({
+          target: [leads.tenantId, leads.email],
+          set: {
+            status: l.status,
+            priority: l.priority,
+            estimatedValue: l.estimatedValue ?? null,
+            assignedTo: admin.id,
+            updatedAt: new Date(),
+          }
+        });
     }
     console.log(`✓ Seeded ${sampleLeads.length} leads`);
 
@@ -274,6 +289,8 @@ async function seedDemo(): Promise<void> {
         auditTypeId: iso9001Id,
         status: "draft" as const,
         auditDate: days(10),
+        auditorId: auditor.id,
+        auditorName: auditor.fullName,
       },
       {
         auditNumber: "AUD-002",
@@ -283,6 +300,8 @@ async function seedDemo(): Promise<void> {
         auditTypeId: iso27001Id,
         status: "review" as const,
         auditDate: days(30),
+        auditorId: auditor.id,
+        auditorName: auditor.fullName,
       },
       {
         auditNumber: "AUD-003",
@@ -292,6 +311,8 @@ async function seedDemo(): Promise<void> {
         auditTypeId: hipaaId,
         status: "approved" as const,
         auditDate: days(-14),
+        auditorId: admin.id,
+        auditorName: admin.fullName,
       },
       {
         auditNumber: "AUD-004",
@@ -301,6 +322,8 @@ async function seedDemo(): Promise<void> {
         auditTypeId: iso9001Id,
         status: "draft" as const,
         auditDate: days(5),
+        auditorId: auditor.id,
+        auditorName: auditor.fullName,
       },
       {
         auditNumber: "AUD-005",
@@ -310,6 +333,8 @@ async function seedDemo(): Promise<void> {
         auditTypeId: iso27001Id,
         status: "closed" as const,
         auditDate: days(-2),
+        auditorId: admin.id,
+        auditorName: admin.fullName,
       },
     ];
 
@@ -323,12 +348,21 @@ async function seedDemo(): Promise<void> {
           customerName: a.customerName,
           siteLocation: a.siteLocation,
           auditTypeId: a.auditTypeId,
-          auditorId: admin.id,
-          auditorName: admin.fullName,
+          auditorId: a.auditorId,
+          auditorName: a.auditorName,
           auditDate: a.auditDate,
           status: a.status,
         })
-        .onConflictDoNothing();
+        .onConflictDoUpdate({
+          target: [audits.tenantId, audits.auditNumber],
+          set: {
+            status: a.status,
+            auditDate: a.auditDate,
+            auditorId: a.auditorId,
+            auditorName: a.auditorName,
+            updatedAt: new Date(),
+          }
+        });
     }
     console.log(`✓ Seeded ${sampleAudits.length} audits`);
   });
